@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Splunk Query Studio</title>
+  <link rel="stylesheet" href="renderer/styles/variables.css" />
+  <link rel="stylesheet" href="renderer/styles/layout.css" />
+  <link rel="stylesheet" href="renderer/styles/components.css" />
+</head>
+<body>
+
+<div class="app-frame">
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">SQS</div>
+      Splunk Query Studio
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" id="btn-save-preset" title="Save current query as preset" disabled>
+        Save Preset
+      </button>
+      <button class="btn btn-primary" id="btn-copy" title="Copy SPL to clipboard (Ctrl+Shift+C)" disabled>
+        Copy SPL
+      </button>
+      <!-- Help / Info menu -->
+      <div class="header-menu-wrapper">
+        <button class="btn btn-ghost header-menu-trigger" id="btn-menu" title="Help & About">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 11v-1"/><path d="M8 8c0-1.5 2-1.5 2-3a2 2 0 10-4 0"/></svg>
+        </button>
+        <div class="header-dropdown" id="header-dropdown">
+          <button class="dropdown-item" data-open-modal="about">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 7v4"/><circle cx="8" cy="5" r="0.5" fill="currentColor" stroke="none"/></svg>
+            About
+          </button>
+          <button class="dropdown-item" data-open-modal="feedback">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 2V4a1 1 0 011-1z"/></svg>
+            Send Feedback
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" data-open-modal="privacy">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L3 4v4c0 3 2.5 5 5 6 2.5-1 5-3 5-6V4z"/></svg>
+            Privacy Policy
+          </button>
+          <button class="dropdown-item" data-open-modal="terms">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h8a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M6 6h4M6 8.5h4M6 11h2"/></svg>
+            Terms of Service
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== SIDEBAR ===== -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="section-header">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="5" rx="1"/><rect x="2" y="9" width="12" height="5" rx="1"/></svg>
+        Categories
+      </div>
+      <div class="category-list" id="sidebar-category-list"></div>
+    </div>
+    <!-- Sidebar footer: links -->
+    <div class="sidebar-footer">
+      <button class="sidebar-footer-link" data-open-modal="about">About Splunk Query Studio</button>
+      <button class="sidebar-footer-link" data-open-modal="feedback">Send Feedback</button>
+      <button class="sidebar-footer-link" data-open-modal="privacy">Privacy Policy</button>
+      <button class="sidebar-footer-link" data-open-modal="terms">Terms of Service</button>
+      <span class="sidebar-footer-copy">© 2026 Souri Apps</span>
+    </div>
+  </nav>
+
+  <!-- ===== MAIN — Wizard ===== -->
+  <main>
+
+    <!-- Step progress indicator -->
+    <div class="wizard-stepper" id="wizard-stepper">
+      <button class="wizard-step-item" data-step="1">
+        <div class="step-circle" id="circle-1">1</div>
+        <div class="step-info">
+          <div class="step-label">Category</div>
+          <div class="step-sublabel" id="summary-1">Choose type</div>
+        </div>
+      </button>
+      <div class="step-connector" id="connector-1-2"></div>
+      <button class="wizard-step-item" data-step="2">
+        <div class="step-circle" id="circle-2">2</div>
+        <div class="step-info">
+          <div class="step-label">Platform</div>
+          <div class="step-sublabel" id="summary-2">Select source</div>
+        </div>
+      </button>
+      <div class="step-connector" id="connector-2-3"></div>
+      <button class="wizard-step-item" data-step="3">
+        <div class="step-circle" id="circle-3">3</div>
+        <div class="step-info">
+          <div class="step-label">Parameters</div>
+          <div class="step-sublabel" id="summary-3">Set filters</div>
+        </div>
+      </button>
+      <div class="step-connector" id="connector-3-4"></div>
+      <button class="wizard-step-item" data-step="4">
+        <div class="step-circle" id="circle-4">4</div>
+        <div class="step-info">
+          <div class="step-label">Query</div>
+          <div class="step-sublabel" id="summary-4">Generated SPL</div>
+        </div>
+      </button>
+    </div>
+
+    <!-- ── Step 1: Category ── -->
+    <div class="wizard-panel" id="panel-step-1">
+      <div class="panel-heading">
+        <h2 class="panel-title">Choose a category</h2>
+        <p class="panel-desc">Select the type of infrastructure or data source you want to query</p>
+      </div>
+      <div class="category-card-grid" id="category-card-grid">
+        <!-- Populated by app.js -->
+      </div>
+    </div>
+
+    <!-- ── Step 2: Platform ── -->
+    <div class="wizard-panel hidden" id="panel-step-2">
+      <div class="panel-heading">
+        <h2 class="panel-title">Select a platform</h2>
+        <p class="panel-desc" id="step2-desc">Choose the specific data source technology</p>
+      </div>
+      <div class="tech-selector" id="tech-selector">
+        <!-- Populated by app.js -->
+      </div>
+    </div>
+
+    <!-- ── Step 3: Parameters ── -->
+    <div class="wizard-panel hidden" id="panel-step-3">
+      <div class="panel-heading">
+        <h2 class="panel-title">Configure search parameters</h2>
+        <p class="panel-desc">Set time range, filters, and the type of analysis to perform</p>
+      </div>
+
+      <div class="builder-grid">
+
+        <!-- IP Filter (shown only for network) -->
+        <div class="input-card" id="ip-filter-card">
+          <div class="input-header">
+            <div class="input-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c-2 1.5-3 3.5-3 6s1 4.5 3 6M8 2c2 1.5 3 3.5 3 6s-1 4.5-3 6"/></svg>
+            </div>
+            <div>
+              <div class="input-title">IP Filter</div>
+              <div class="input-subtitle">Comma-separated IPs or CIDR ranges (optional)</div>
+            </div>
+          </div>
+          <input class="input-field" id="ip-filter" type="text"
+            placeholder="192.168.1.100, 10.0.0.0/24" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <!-- Time Range -->
+        <div class="input-card">
+          <div class="input-header">
+            <div class="input-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+            </div>
+            <div>
+              <div class="input-title">Time Range</div>
+              <div class="input-subtitle">How far back to search</div>
+            </div>
+          </div>
+          <select class="input-field" id="time-range-select">
+            <option>Last 15m</option>
+            <option selected>Last 1h</option>
+            <option>Last 4h</option>
+            <option>Last 24h</option>
+            <option>Last 7d</option>
+          </select>
+        </div>
+
+        <!-- Query Type -->
+        <div class="input-card">
+          <div class="input-header">
+            <div class="input-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L13.5 13.5"/></svg>
+            </div>
+            <div>
+              <div class="input-title">Query Type</div>
+              <div class="input-subtitle">What to analyze in the results</div>
+            </div>
+          </div>
+          <select class="input-field" id="query-type-select"></select>
+        </div>
+
+      </div><!-- /builder-grid -->
+
+      <!-- Live SPL preview bar -->
+      <div class="spl-preview-bar">
+        <div class="preview-bar-label">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4l4 4-4 4M9 12h4"/></svg>
+          Live query preview
+        </div>
+        <pre class="spl-preview-code" id="spl-preview"></pre>
+      </div>
+
+    </div><!-- /panel-step-3 -->
+
+    <!-- ── Step 4: Result ── -->
+    <div class="wizard-panel hidden" id="panel-step-4">
+
+      <div class="results-container">
+
+        <div class="results-header">
+          <div class="results-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4l4 4-4 4M9 12h4"/></svg>
+            Generated SPL Query
+          </div>
+          <div class="profile-display">
+            <span class="profile-chip">
+              <span class="profile-chip-label">index</span>
+              <span class="profile-chip-value" data-index-display>—</span>
+            </span>
+            <span class="profile-chip">
+              <span class="profile-chip-label">sourcetype</span>
+              <span class="profile-chip-value" data-sourcetype-display>—</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="spl-editor">
+          <pre id="spl-output"></pre>
+        </div>
+
+        <div class="optimization-metrics" id="optimization-metrics">
+          <!-- Populated by app.js -->
+        </div>
+
+        <div class="action-grid">
+          <button class="btn btn-secondary" id="btn-reset">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8A5.5 5.5 0 118 13.5"/><path d="M2.5 4v4h4"/></svg>
+            Start Over
+          </button>
+          <button class="btn btn-ghost" id="btn-run">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l9 5-9 5V3z"/></svg>
+            Run in Splunk
+          </button>
+          <button class="btn btn-ghost" id="btn-save-preset-result">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h8l2 2v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3z"/><rect x="5" y="9" width="6" height="4" rx="0.5"/><rect x="5" y="3" width="5" height="3" rx="0.5"/></svg>
+            Save Preset
+          </button>
+          <button class="btn btn-primary" id="btn-copy-result">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="8" height="9" rx="1.2"/><path d="M11 5V3.8A.8.8 0 0010.2 3H3.8A.8.8 0 003 3.8v8.4a.8.8 0 00.8.8H5"/></svg>
+            Copy SPL
+          </button>
+        </div>
+
+      </div><!-- /results-container -->
+
+    </div><!-- /panel-step-4 -->
+
+    <!-- Wizard navigation (hidden on step 1 — clicking category cards advances) -->
+    <div class="wizard-nav" id="wizard-nav">
+      <button class="btn btn-secondary" id="btn-back">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12L6 8l4-4"/></svg>
+        Back
+      </button>
+      <div class="wizard-nav-info" id="wizard-nav-info"></div>
+      <button class="btn btn-primary" id="btn-continue">
+        Continue
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ===== ASIDE: History & Presets ===== -->
+  <aside class="history-panel">
+
+    <div class="aside-header">
+      <div class="aside-title">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l-2 2"/></svg>
+        Recent Queries
+      </div>
+      <button class="aside-clear-btn" id="btn-clear-history">Clear</button>
+    </div>
+    <div id="history-list"></div>
+
+    <div class="aside-section">
+      <div class="aside-section-title">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6 11,9 12,13 8,10.5 4,13 5,9 2,6 6,6"/></svg>
+        Saved Presets
+      </div>
+      <div id="preset-list"></div>
+    </div>
+
+  </aside>
+
+</div><!-- /app-frame -->
+
+<div id="toast-container"></div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- About -->
+<div class="modal-overlay" id="modal-about" aria-hidden="true" role="dialog" aria-labelledby="modal-about-title">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 7v4"/><circle cx="8" cy="5" r="0.5" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <div class="modal-head-text">
+        <h2 class="modal-title" id="modal-about-title">About</h2>
+        <p class="modal-subtitle">Splunk Query Studio</p>
+      </div>
+      <button class="modal-close" data-close-modal="about" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="about-brand">
+        <div class="about-logo">SQS</div>
+        <div class="about-app-info">
+          <div class="about-app-name">Splunk Query Studio</div>
+          <div class="about-app-version">Version 1.0.0 · Windows</div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">What is this?</div>
+        <p class="modal-text">A desktop tool built for SOC analysts and IT teams to quickly generate optimized Splunk SPL queries — without memorizing syntax. Supports network, server, data center, and application log sources.</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Developed by</div>
+        <p class="modal-text">Bobby Vongchanh · <button class="modal-link-btn" data-href="https://souriapps.net/">souriapps.net</button></p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Contact</div>
+        <p class="modal-text"><button class="modal-link-btn" data-href="mailto:iambobbyv@icloud.com">iambobbyv@icloud.com</button></p>
+      </div>
+      <div class="about-links">
+        <button class="modal-link-btn" data-href="https://souriapps.net/about">Website</button>
+        <button class="modal-link-btn" data-open-modal="privacy">Privacy Policy</button>
+        <button class="modal-link-btn" data-open-modal="terms">Terms of Service</button>
+      </div>
+      <p class="about-copyright">© 2026 Souri Apps. All rights reserved.<br>Not affiliated with or endorsed by Splunk Inc.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Privacy Policy -->
+<div class="modal-overlay" id="modal-privacy" aria-hidden="true" role="dialog" aria-labelledby="modal-privacy-title">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L3 4v4c0 3 2.5 5 5 6 2.5-1 5-3 5-6V4z"/></svg>
+      </div>
+      <div class="modal-head-text">
+        <h2 class="modal-title" id="modal-privacy-title">Privacy Policy</h2>
+        <p class="modal-subtitle">Last updated: February 2026</p>
+      </div>
+      <button class="modal-close" data-close-modal="privacy" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-label">Data Collection</div>
+        <p class="modal-text">Splunk Query Studio is a fully offline desktop application. <strong>We do not collect, transmit, or store any personal data</strong> outside your device. There are no analytics, telemetry, or crash-reporting services in this application.</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Local Storage</div>
+        <p class="modal-text">All data — including your query history and saved presets — is stored locally on your device using Electron's renderer localStorage. This data never leaves your machine.</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">External Links</div>
+        <p class="modal-text">This app may open external links (such as the Souri Apps website) in your default browser. No personal data is sent when these links are opened.</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Contact</div>
+        <p class="modal-text">Questions about privacy? Email <button class="modal-link-btn" data-href="mailto:iambobbyv@icloud.com">iambobbyv@icloud.com</button></p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-href="https://souriapps.net/privacy" data-external>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/><path d="M10 2h4v4"/><path d="M8.5 7.5L14 2"/></svg>
+        View Full Policy
+      </button>
+      <button class="btn btn-primary" data-close-modal="privacy">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Terms of Service -->
+<div class="modal-overlay" id="modal-terms" aria-hidden="true" role="dialog" aria-labelledby="modal-terms-title">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h8a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M6 6h4M6 8.5h4M6 11h2"/></svg>
+      </div>
+      <div class="modal-head-text">
+        <h2 class="modal-title" id="modal-terms-title">Terms of Service</h2>
+        <p class="modal-subtitle">Last updated: February 2026</p>
+      </div>
+      <button class="modal-close" data-close-modal="terms" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-label">Use of the App</div>
+        <p class="modal-text">Splunk Query Studio is provided for personal and professional use. You may use it to generate and refine SPL queries for legitimate Splunk deployments within your organization.</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">No Warranty</div>
+        <p class="modal-text">This application is provided "as-is" without warranty of any kind, express or implied. Generated SPL queries are suggestions and should be reviewed before use in production environments.</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Third-Party Trademark</div>
+        <p class="modal-text">Splunk® is a registered trademark of Splunk Inc. Splunk Query Studio is not affiliated with, authorized by, or endorsed by Splunk Inc. in any way.</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Limitation of Liability</div>
+        <p class="modal-text">Souri Apps shall not be liable for any damages arising from the use or inability to use this application, including any loss of data or business interruption.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" data-href="https://souriapps.net/terms" data-external>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/><path d="M10 2h4v4"/><path d="M8.5 7.5L14 2"/></svg>
+        View Full Terms
+      </button>
+      <button class="btn btn-primary" data-close-modal="terms">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback -->
+<div class="modal-overlay" id="modal-feedback" aria-hidden="true" role="dialog" aria-labelledby="modal-feedback-title">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 2V4a1 1 0 011-1z"/></svg>
+      </div>
+      <div class="modal-head-text">
+        <h2 class="modal-title" id="modal-feedback-title">Send Feedback</h2>
+        <p class="modal-subtitle">We'd love to hear from you</p>
+      </div>
+      <button class="modal-close" data-close-modal="feedback" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-label">Your message</div>
+        <textarea class="feedback-textarea" id="feedback-text" placeholder="Share a bug report, feature request, or general feedback..."></textarea>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Direct email</div>
+        <p class="modal-text">Or email us directly at <button class="modal-link-btn" data-href="mailto:iambobbyv@icloud.com">iambobbyv@icloud.com</button></p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close-modal="feedback">Cancel</button>
+      <button class="btn btn-primary" id="btn-send-feedback">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M14 2L2 7l5 2m7-7l-5 9-2-5"/></svg>
+        Send via Email
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="renderer/js/app.js"></script>
+
+</body>
+</html>

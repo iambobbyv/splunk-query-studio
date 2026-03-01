@@ -1,0 +1,24 @@
+{
+  "name": "splunk-query-studio",
+  "version": "1.0.0",
+  "description": "Desktop tool for SOC analysts and IT teams to generate optimized Splunk SPL queries",
+  "main": "main.js",
+  "author": {
+    "name": "Bobby Vongchanh",
+    "email": "iambobbyv@icloud.com",
+    "url": "https://souriapps.net/"
+  },
+  "homepage": "https://souriapps.net/",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:nsis": "electron-builder --win nsis",
+    "build:portable": "electron-builder --win portable",
+    "build:all": "electron-builder --win nsis portable"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}

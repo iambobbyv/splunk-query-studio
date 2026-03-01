@@ -1,0 +1,40 @@
+appId: com.souriapps.splunk-query-studio
+productName: Splunk Query Studio
+
+directories:
+  buildResources: assets
+  output: dist
+
+# Files bundled into the app package
+files:
+  - main.js
+  - preload.js
+  - index.html
+  - package.json
+  - renderer/**/*
+
+# Windows builds: NSIS installer + standalone portable
+win:
+  target:
+    - target: nsis
+      arch: x64
+    - target: portable
+      arch: x64
+  icon: assets/icon.ico
+
+# NSIS installer options
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Splunk Query Studio
+  uninstallDisplayName: Splunk Query Studio
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  installerHeaderIcon: assets/icon.ico
+  deleteAppDataOnUninstall: false
+
+# App metadata
+publish: null

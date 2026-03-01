@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Claude Code workspace
+.claude/
+
+# Old scaffold / prototype files (not part of the clean codebase)
+index_full_spa.html
+splunk_query_studio_final_complete.html
+splunk_query_studio_wizard_complete.html
+splunk_query_studio_electron_scaffold.zip
+
+# Legacy setup scripts (pre-electron-builder era)
+setup_splunk_query_studio.ps1
+setup_splunk_query_studio.sh
+
+# Loose notes (not source code)
+architecture_notes.txt
+README.txt
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+*.swp
+*.swo
