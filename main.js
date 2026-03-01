@@ -57,8 +57,8 @@ function createMainWindow() {
     if (level >= 2) console.error(`[renderer L${level}] ${msg}  (${src}:${line})`);
   });
 
-  // Open DevTools automatically in dev mode — press Ctrl+W to close it
-  if (DEV) win.webContents.openDevTools({ mode: 'detach' });
+  // DevTools: open manually with Ctrl+Shift+I if needed
+  // if (DEV) win.webContents.openDevTools({ mode: 'detach' });
 
   return win;
 }
