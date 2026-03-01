@@ -335,12 +335,57 @@ function buildIco(sizes) {
   return ico;
 }
 
-/* ── Main ────────────────────────────────────────────────────────────────── */
-const outPath = path.join(__dirname, 'icon.ico');
-fs.writeFileSync(outPath, buildIco([16, 32, 48, 256]));
+/* ── Build ICNS (macOS) ──────────────────────────────────────────────────── */
+/**
+ * Modern PNG-based ICNS format (macOS 10.8+).
+ * Each chunk: 4-byte OSType + 4-byte BE length (including header) + PNG data.
+ */
+function buildIcns() {
+  const spec = [
+    { type: 'icp4', size:   16 },
+    { type: 'icp5', size:   32 },
+    { type: 'icp6', size:   64 },
+    { type: 'ic07', size:  128 },
+    { type: 'ic08', size:  256 },
+    { type: 'ic09', size:  512 },
+    { type: 'ic10', size: 1024 },
+  ];
 
-const kb = (fs.statSync(outPath).size / 1024).toFixed(1);
-console.log(`✓ Created ${path.relative(process.cwd(), outPath)}  (${kb} KB)`);
-console.log('  Sizes : 16×16, 32×32, 48×48 (magnifying glass · BMP)');
-console.log('  Size  : 256×256 (SQS pixel font · PNG)');
-console.log('  Colors: #060a2e → #1a3a9a background · white S · cyan Q · white S\n');
+  const chunks = spec.map(({ type, size }) => {
+    const { buf: png } = pngEntry(drawSQSIcon(size), size);
+    const chunkLen = 8 + png.length;           // 4 type + 4 len + data
+    const chunk = Buffer.alloc(chunkLen);
+    chunk.write(type, 0, 'ascii');
+    chunk.writeUInt32BE(chunkLen, 4);
+    png.copy(chunk, 8);
+    return chunk;
+  });
+
+  const fileLen = 8 + chunks.reduce((s, c) => s + c.length, 0);
+  const icns = Buffer.alloc(fileLen);
+  icns.write('icns', 0, 'ascii');             // magic
+  icns.writeUInt32BE(fileLen, 4);              // total file size
+  let off = 8;
+  for (const c of chunks) { c.copy(icns, off); off += c.length; }
+  return icns;
+}
+
+/* ── Main ────────────────────────────────────────────────────────────────── */
+const outIco  = path.join(__dirname, 'icon.ico');
+const outIcns = path.join(__dirname, 'icon.icns');
+const outPng  = path.join(__dirname, 'icon-1024.png');
+
+// Windows ICO (16/32/48 BMP  +  256 PNG)
+fs.writeFileSync(outIco, buildIco([16, 32, 48, 256]));
+console.log(`✓ icon.ico      (${(fs.statSync(outIco).size / 1024).toFixed(1).padStart(5)} KB)  — 16/32/48 BMP · 256 PNG`);
+
+// macOS ICNS (7 PNG sizes: 16 → 1024)
+fs.writeFileSync(outIcns, buildIcns());
+console.log(`✓ icon.icns     (${(fs.statSync(outIcns).size / 1024).toFixed(1).padStart(5)} KB)  — 16/32/64/128/256/512/1024 PNG`);
+
+// iOS / universal 1024×1024 PNG (source for @capacitor/assets)
+const { buf: png1024 } = pngEntry(drawSQSIcon(1024), 1024);
+fs.writeFileSync(outPng, png1024);
+console.log(`✓ icon-1024.png (${(fs.statSync(outPng).size / 1024).toFixed(1).padStart(5)} KB)  — iOS / App Store source icon`);
+
+console.log('\n  Design: #060a2e → #1a3a9a gradient · S (white) · Q (cyan #7dd3fc) · S (white)\n');

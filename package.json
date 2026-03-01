@@ -12,12 +12,19 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
+    "icon": "node assets/generate-icon.js",
     "build": "electron-builder --win",
     "build:nsis": "electron-builder --win nsis",
     "build:portable": "electron-builder --win portable",
-    "build:all": "electron-builder --win nsis portable"
+    "build:all": "electron-builder --win nsis portable",
+    "build:mac": "electron-builder --mac",
+    "build:web": "node scripts/build-web.js",
+    "cap:sync": "npm run build:web && npx cap sync",
+    "cap:open:ios": "npm run build:web && npx cap sync ios && npx cap open ios"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/ios": "^6.2.1",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3"
   }

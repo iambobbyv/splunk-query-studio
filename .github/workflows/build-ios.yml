@@ -1,0 +1,82 @@
+name: Build iOS / iPadOS (Capacitor)
+
+# Runs automatically on every push to main, or manually via GitHub Actions UI.
+#
+# Produces two artifacts:
+#   1. SplunkQueryStudio-iOS-Simulator — .app bundle runnable in Xcode Simulator
+#   2. SplunkQueryStudio-iOS-XcodeProject — full Xcode project; open on any Mac
+#      to build, run on a real device, or submit to the App Store.
+#
+# For a real-device IPA or App Store submission you need:
+#   - Apple Developer Program membership ($99/year)
+#   - A distribution certificate + provisioning profile stored as GitHub secrets:
+#       BUILD_CERTIFICATE_BASE64, P12_PASSWORD, BUILD_PROVISION_PROFILE_BASE64,
+#       KEYCHAIN_PASSWORD, APPLE_ID, APPLE_TEAM_ID
+#   Then add an `archive` step with xcodebuild -exportArchive.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    name: Capacitor — iOS / iPadOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # Copy index.html + renderer/ + assets/spl-knowledge.json → www/
+      - name: Build web assets
+        run: npm run build:web
+
+      # Scaffold the Xcode project from Capacitor templates + installed www/
+      - name: Add Capacitor iOS platform
+        run: npx cap add ios
+
+      # Copy latest web assets + Capacitor bridge JS into the Xcode project
+      - name: Sync Capacitor
+        run: npx cap sync ios
+
+      # Build for iOS Simulator — no code signing required
+      - name: Build for iOS Simulator (unsigned)
+        working-directory: ios/App
+        run: |
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -sdk iphonesimulator \
+            -configuration Release \
+            -derivedDataPath ../../build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Upload iOS Simulator .app
+        uses: actions/upload-artifact@v4
+        with:
+          name: SplunkQueryStudio-iOS-Simulator-${{ github.sha }}
+          path: build/ios/Build/Products/Release-iphonesimulator/App.app
+          retention-days: 30
+
+      # Upload the full Xcode project so you can open it locally on any Mac
+      - name: Upload Xcode project
+        uses: actions/upload-artifact@v4
+        with:
+          name: SplunkQueryStudio-iOS-XcodeProject-${{ github.sha }}
+          path: ios/
+          retention-days: 30

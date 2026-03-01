@@ -38,5 +38,24 @@ nsis:
   installerHeaderIcon: assets/icon.ico
   deleteAppDataOnUninstall: false
 
+# macOS builds: DMG (x64 + Apple Silicon) — built on macOS via GitHub Actions
+# See .github/workflows/build-macos.yml
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  icon: assets/icon.icns
+  category: public.app-category.developer-tools
+  darkModeSupport: true
+  identity: null   # unsigned; set CSC_* env vars for notarised distribution builds
+
+dmg:
+  backgroundColor: '#020617'
+  window:
+    width: 620
+    height: 400
+
 # App metadata
 publish: null

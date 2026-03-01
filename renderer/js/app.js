@@ -768,6 +768,8 @@ function renderAISuggestions(suggestions) {
         const text = el.textContent;
         if (window.api?.copyToClipboard) {
           window.api.copyToClipboard(text).then(() => showToast('SPL copied!'));
+        } else {
+          navigator.clipboard.writeText(text).then(() => showToast('SPL copied!'));
         }
       });
     });
@@ -819,6 +821,8 @@ function appendChatMessage(role, text) {
     pre.addEventListener('click', () => {
       if (window.api?.copyToClipboard) {
         window.api.copyToClipboard(pre.textContent).then(() => showToast('SPL copied!'));
+      } else {
+        navigator.clipboard.writeText(pre.textContent).then(() => showToast('SPL copied!'));
       }
     });
   });
@@ -941,8 +945,11 @@ function initAIPanel() {
   // Click-to-copy on pre blocks (delegated)
   qs('#ai-chat-messages')?.addEventListener('click', e => {
     const pre = e.target.closest('pre');
-    if (pre && window.api?.copyToClipboard) {
+    if (!pre) return;
+    if (window.api?.copyToClipboard) {
       window.api.copyToClipboard(pre.textContent).then(() => showToast('SPL copied!'));
+    } else {
+      navigator.clipboard.writeText(pre.textContent).then(() => showToast('SPL copied!'));
     }
   });
 }
