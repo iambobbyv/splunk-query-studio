@@ -1,0 +1,77 @@
+{
+  "ios": {
+    "bundleId": "com.souriapps.splunkquerystudio",
+    "appName": "Splunk Query Studio",
+    "subtitle": "SPL Query Builder for Splunk",
+    "category": "Developer Tools",
+    "secondaryCategory": "Utilities",
+    "version": "1.0.0",
+    "buildNumber": "1",
+    "minimumOSVersion": "16.0",
+    "supportedDevices": ["iPhone", "iPad"],
+    "description": "Splunk Query Studio is the SPL query builder for Splunk professionals who need to work fast. Whether you're in the middle of an incident response, running threat hunts, or just tired of rewriting the same queries from scratch — Studio puts every search pattern one tap away.\n\nBUILD QUERIES INSTANTLY\nChoose a data source, select a query type, fill in your parameters, and get a complete, production-ready SPL query — syntax-highlighted and ready to paste into Splunk.\n\n20 DATA SOURCE PROFILES\n• Network: Cisco IOS/NX-OS, Cisco ISE, Cisco Firepower/FTD, Cisco* (wildcard), Palo Alto Networks, SolarWinds, Generic Firewall\n• Server: Linux Syslog, Windows WEC, Windows Sysmon, CrowdStrike\n• Data Center: VMware ESXi, VMware vCenter, NetApp, Pure Storage\n• Applications: Apache HTTP, Microsoft IIS, Nginx, Okta, Microsoft 365\n\nQUERY HISTORY & PRESETS\nNever rewrite the same query twice. Studio keeps your last 75 searches and lets you save unlimited named presets for one-tap recall.\n\nDESIGNED FOR THE FIELD\nA distraction-free dark interface built for long shifts. Syntax highlighting with zero overlap artifacts. Copy any query to clipboard directly from the app.\n\nPRIVACY FIRST\nSplunk Query Studio works entirely on-device. No telemetry, no accounts, no network calls. Your queries never leave your device.",
+    "keywords": "splunk,SPL,SIEM,SOC,query,security,analyst,log,network,threat,hunt,search,cisco,palo alto",
+    "promotionalText": "Generate production-ready Splunk SPL queries for 20+ data sources in seconds. Built for SOC analysts, threat hunters, and IT teams.",
+    "supportURL": "https://souriapps.net/support",
+    "marketingURL": "https://souriapps.net",
+    "privacyPolicyURL": "https://souriapps.net/privacy",
+    "whatsNew": "Version 1.0.0\n\n• 4-step guided query wizard\n• 20 data source profiles across Network, Server, Data Center, and Applications\n• Live SPL preview with syntax highlighting\n• Query history (75 entries) and saved presets\n• Full iPhone and iPad support with dark interface",
+    "reviewNotes": "Splunk Query Studio is a standalone SPL query builder. It does not connect to any Splunk instance — it generates queries locally based on user-selected parameters. No Splunk login, API key, or backend is required to test the app. Open the app, select a domain (e.g. Network), choose a data source (e.g. Palo Alto Networks), pick a query type (e.g. Traffic Analysis), fill in optional field filters, and the complete SPL query is generated instantly in the output panel.",
+    "reviewCredentials": {
+      "required": false,
+      "notes": "No login required. The app opens directly to the query wizard."
+    },
+    "contentRating": "4+",
+    "pricingTier": "Free",
+    "inAppPurchases": [],
+    "ageRating": {
+      "alcoholTobaccoDrugs": "none",
+      "contests": "none",
+      "gambling": "none",
+      "horror": "none",
+      "matureContent": "none",
+      "medicalInfo": "none",
+      "profanity": "none",
+      "sexualContent": "none",
+      "violence": "none",
+      "unrestrictedWebAccess": false
+    },
+    "exportCompliance": {
+      "usesEncryption": false,
+      "isExempt": true
+    },
+    "appReviewContact": {
+      "firstName": "Bobby",
+      "lastName": "Vongchanh",
+      "email": "iambobbyv@icloud.com",
+      "phone": "+1-832-874-7234",
+      "demoAccountRequired": false
+    },
+    "screenshots": {
+      "iphone_6_9_1320x2868": [
+        "screenshots/01_wizard_home.png",
+        "screenshots/02_network_sources.png",
+        "screenshots/03_query_output.png",
+        "screenshots/04_history_presets.png"
+      ],
+      "ipad_13_2064x2752": [
+        "screenshots_ipad/01_wizard_home.png",
+        "screenshots_ipad/02_network_sources.png",
+        "screenshots_ipad/03_query_output.png",
+        "screenshots_ipad/04_history_presets.png"
+      ]
+    }
+  },
+  "macOS": {
+    "bundleId": "com.souriapps.splunk-query-studio",
+    "appName": "Splunk Query Studio",
+    "distributionMethod": "Developer ID (Direct / Notarized DMG)",
+    "note": "Splunk Query Studio is built with Electron. Distribution is via signed + notarized DMG (Gatekeeper-compliant). Mac App Store is not targeted at this time.",
+    "minimumOSVersion": "12.0",
+    "architectures": ["arm64", "x64"],
+    "version": "1.0.0",
+    "buildNumber": "1",
+    "category": "public.app-category.developer-tools",
+    "darkModeSupport": true
+  }
+}
