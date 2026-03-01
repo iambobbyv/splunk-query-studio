@@ -10,8 +10,10 @@ let KB = null;
 let ollamaAvailable = null;   // null = not yet checked, true/false = result
 let ollamaModel = null;       // detected model name
 
-// In Electron, file:// urls load from the app root — this path works from renderer/js/
-const KB_PATH = '../../assets/spl-knowledge.json';
+// Use import.meta.url so the path resolves relative to THIS script (renderer/js/),
+// NOT relative to the document. fetch() resolves from the document base which would
+// give the wrong path (../../ from project root goes outside the project in Electron).
+const KB_PATH = new URL('../../assets/spl-knowledge.json', import.meta.url).href;
 const OLLAMA_BASE = 'http://localhost:11434';
 
 /* ── Load knowledge base ────────────────────────────────────────────────── */
