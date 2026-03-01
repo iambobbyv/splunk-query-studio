@@ -460,6 +460,8 @@ kbd {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   flex-shrink: 0;
+  min-width: 0;     /* allow flex container to shrink within the main column */
+  overflow: hidden; /* clip any overflow rather than stretching the column */
 }
 
 .wizard-step-item {
@@ -472,7 +474,8 @@ kbd {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   transition: background var(--transition-fast);
-  flex-shrink: 0;
+  flex-shrink: 1;      /* allow step items to compress in narrow viewports */
+  min-width: 44px;     /* minimum: circle (28px) + side padding (2 × 8px) */
   text-align: left;
 }
 
