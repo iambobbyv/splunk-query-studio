@@ -35,10 +35,32 @@ export async function checkOllama() {
     if (!res.ok) throw new Error('not ok');
     const data = await res.json();
     const models = (data.models || []).map(m => m.name);
-    // Prefer smaller models good for code tasks
-    const preferred = ['phi3:mini', 'phi3', 'llama3.2:3b', 'llama3.2', 'llama3:8b',
-                       'llama3', 'mistral:7b', 'mistral', 'codellama:7b', 'codellama'];
-    ollamaModel = preferred.find(p => models.some(m => m.startsWith(p.split(':')[0]))) || models[0] || null;
+    // Prefer models best suited for SPL/code reasoning, smallest first.
+    // Model name matching: prefix before ':' is used so any tag/quant variant matches.
+    const preferred = [
+      'qwen2.5-coder',   // 3b = 1.9 GB — best code model at this size
+      'phi3.5',          // 3.8b = 2.2 GB — updated phi3 mini, 128K context
+      'phi3',            // 3.8b = 2.3 GB — classic phi3 mini
+      'smallthinker',    // 3b = 1.9 GB — reasoning-focused
+      'llama3.2',        // 3b = 2.0 GB — solid general purpose
+      'gemma3',          // 4b = 3.3 GB — Google, strong reasoning
+      'gemma2',          // 9b fallback
+      'mistral',         // 7b = 4.1 GB — reliable fallback
+      'qwen2.5',         // 7b fallback
+      'llama3',          // 8b fallback
+      'codellama',       // code-specific fallback
+    ];
+    // Match: exact name OR exact prefix (before colon) OR starts-with prefix
+    ollamaModel = preferred.find(p =>
+      models.some(m => m === p || m.startsWith(p + ':') || m.startsWith(p + '-'))
+    ) || models[0] || null;
+    // Use the actual installed model tag, not just the prefix
+    if (ollamaModel) {
+      const match = models.find(m =>
+        m === ollamaModel || m.startsWith(ollamaModel + ':') || m.startsWith(ollamaModel + '-')
+      );
+      if (match) ollamaModel = match;
+    }
     ollamaAvailable = !!ollamaModel;
   } catch (_) {
     ollamaAvailable = false;
