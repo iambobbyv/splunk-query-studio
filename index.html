@@ -141,6 +141,22 @@
 
       <div class="builder-grid">
 
+        <!-- Field Filters — profile-aware, populated by app.js -->
+        <div class="input-card field-filter-card" id="field-filter-card" style="display:none">
+          <div class="input-header">
+            <div class="input-icon">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+            </div>
+            <div>
+              <div class="input-title">Field Filters <span class="field-filter-badge" id="field-filter-badge" style="display:none"></span></div>
+              <div class="input-subtitle">Narrow results by specific fields (all optional)</div>
+            </div>
+          </div>
+          <div class="field-filter-grid" id="field-filter-inputs">
+            <!-- Populated by app.js based on selected platform -->
+          </div>
+        </div>
+
         <!-- IP Filter (shown only for network) -->
         <div class="input-card" id="ip-filter-card">
           <div class="input-header">

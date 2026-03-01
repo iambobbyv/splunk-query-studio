@@ -18,11 +18,12 @@ const state = {
   maxReached: 1,
 
   // Selections
-  category:  'network',
-  techKey:   'cisco_wildcard',
-  timeRange: 'Last 1h',
-  ips:       '',
-  queryType: 'IP Address Lookup',
+  category:     'network',
+  techKey:      'cisco_wildcard',
+  timeRange:    'Last 1h',
+  ips:          '',
+  queryType:    'IP Address Lookup',
+  customFields: {},   // map of fieldName → value string
 
   // Generated
   currentSPL: ''
@@ -45,12 +46,13 @@ function generateSPL() {
   const prof = currentProfile();
   if (!prof) return '';
   return buildSPL({
-    index:      prof.index,
-    sourcetype: prof.sourcetype,
-    timeRange:  state.timeRange,
-    ips:        state.ips,
-    queryType:  state.queryType,
-    category:   state.category
+    index:        prof.index,
+    sourcetype:   prof.sourcetype,
+    timeRange:    state.timeRange,
+    ips:          state.ips,
+    queryType:    state.queryType,
+    category:     state.category,
+    customFields: state.customFields
   });
 }
 
@@ -79,6 +81,7 @@ function goToStep(n) {
   if (n === 3) {
     renderQueryTypes();
     renderIPFilter();
+    renderFieldFilters();
     updatePreview();
   }
   if (n === 4) renderResult();
@@ -187,7 +190,8 @@ function renderCategoryCards() {
   qsa('.category-card', grid).forEach(card => {
     card.addEventListener('click', () => {
       const cat = card.dataset.category;
-      state.category = cat;
+      state.category     = cat;
+      state.customFields = {};   // clear field filters when switching category
 
       // Reset downstream selections to defaults for new category
       const meta = CATEGORY_META[cat];
@@ -229,7 +233,8 @@ function renderSidebar() {
   qsa('.category-item', list).forEach(el => {
     el.addEventListener('click', () => {
       const cat = el.dataset.category;
-      state.category = cat;
+      state.category     = cat;
+      state.customFields = {};
       const meta = CATEGORY_META[cat];
       state.techKey   = meta.defaultTech;
       const prof = CATEGORY_PROFILES[cat]?.[state.techKey];
@@ -264,7 +269,8 @@ function renderTechSelector() {
 
   qsa('.tech-option', selector).forEach(el => {
     el.addEventListener('click', () => {
-      state.techKey = el.dataset.tech;
+      state.techKey     = el.dataset.tech;
+      state.customFields = {};     // clear stale field values for new platform
       const prof = profiles[state.techKey];
       state.queryType = prof?.queryTypes?.[0] ?? state.queryType;
 
@@ -284,6 +290,73 @@ function renderIPFilter() {
   if (!card) return;
   const meta = CATEGORY_META[state.category];
   card.style.display = meta?.ipFilterVisible ? '' : 'none';
+}
+
+function renderFieldFilters() {
+  const card    = qs('#field-filter-card');
+  const grid    = qs('#field-filter-inputs');
+  const badge   = qs('#field-filter-badge');
+  if (!card || !grid) return;
+
+  const prof = currentProfile();
+  const filters = prof?.fieldFilters ?? [];
+
+  if (filters.length === 0) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+
+  // Build the field input grid
+  grid.innerHTML = filters.map(f => {
+    const val = escapeHtml(state.customFields[f.field] ?? '');
+    const hintHtml = f.hint
+      ? `<div class="ff-hint">${escapeHtml(f.hint)}</div>`
+      : '';
+    return `
+      <div class="ff-row">
+        <label class="ff-label" for="ff-${escapeHtml(f.field)}">${escapeHtml(f.label)}</label>
+        ${hintHtml}
+        <input
+          class="input-field ff-input"
+          id="ff-${escapeHtml(f.field)}"
+          data-ff-field="${escapeHtml(f.field)}"
+          type="text"
+          value="${val}"
+          placeholder="${escapeHtml(f.placeholder ?? '')}"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>`;
+  }).join('');
+
+  // Wire each input → state.customFields → preview
+  qsa('.ff-input', grid).forEach(input => {
+    input.addEventListener('input', debounce(() => {
+      const fieldName = input.dataset.ffField;
+      const val = input.value.trim();
+      if (val) {
+        state.customFields[fieldName] = val;
+      } else {
+        delete state.customFields[fieldName];
+      }
+      updateFieldBadge(badge);
+      updatePreview();
+    }, 250));
+  });
+
+  updateFieldBadge(badge);
+}
+
+function updateFieldBadge(badge) {
+  if (!badge) return;
+  const count = Object.values(state.customFields).filter(v => v && String(v).trim()).length;
+  if (count > 0) {
+    badge.textContent = `${count} active`;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 function renderQueryTypes() {
@@ -330,10 +403,11 @@ function renderResult() {
 
   // Metrics
   renderMetrics(computeMetrics(spl, {
-    index:      prof?.index ?? '',
-    sourcetype: prof?.sourcetype ?? '',
-    ips:        state.ips,
-    timeRange:  state.timeRange
+    index:        prof?.index ?? '',
+    sourcetype:   prof?.sourcetype ?? '',
+    ips:          state.ips,
+    timeRange:    state.timeRange,
+    customFields: state.customFields
   }));
 
   // Enable header buttons
@@ -495,17 +569,25 @@ function doSavePreset() {
 }
 
 function doReset() {
-  state.step       = 1;
-  state.maxReached = 1;
-  state.category   = 'network';
-  state.techKey    = 'cisco_wildcard';
-  state.timeRange  = 'Last 1h';
-  state.ips        = '';
-  state.queryType  = 'IP Address Lookup';
-  state.currentSPL = '';
+  state.step         = 1;
+  state.maxReached   = 1;
+  state.category     = 'network';
+  state.techKey      = 'cisco_wildcard';
+  state.timeRange    = 'Last 1h';
+  state.ips          = '';
+  state.queryType    = 'IP Address Lookup';
+  state.customFields = {};
+  state.currentSPL   = '';
 
   const ip = qs('#ip-filter');
   if (ip) ip.value = '';
+
+  // Clear any field filter inputs
+  qsa('.ff-input').forEach(el => { el.value = ''; });
+  const badge = qs('#field-filter-badge');
+  if (badge) badge.style.display = 'none';
+  const ffCard = qs('#field-filter-card');
+  if (ffCard) ffCard.style.display = 'none';
 
   const copyBtn = qs('#btn-copy');
   const saveBtn = qs('#btn-save-preset');

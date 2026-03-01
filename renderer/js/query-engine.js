@@ -13,15 +13,23 @@ import { TIME_RANGE_MAP } from './profiles.js';
  * @param {string} opts.ips         — comma-separated IP string
  * @param {string} opts.queryType
  * @param {string} opts.category
+ * @param {object} [opts.customFields] — map of fieldName → value string
  * @returns {string}
  */
-export function buildSPL({ index, sourcetype, timeRange, ips, queryType, category }) {
+export function buildSPL({ index, sourcetype, timeRange, ips, queryType, category, customFields }) {
   const earliest = TIME_RANGE_MAP[timeRange] ?? '-1h';
 
   let lines = [];
 
-  // Line 1: base search
-  lines.push(`index=${index} sourcetype=${sourcetype} earliest=${earliest}`);
+  // Line 1: base search — index, sourcetype, time
+  let baseLine = `index=${index} sourcetype=${sourcetype} earliest=${earliest}`;
+
+  // Inline custom field filters (most efficient — evaluated at search time before pipe)
+  const activeFields = buildFieldFilters(customFields);
+  if (activeFields.length > 0) {
+    baseLine += '\n' + activeFields.join('\n');
+  }
+  lines.push(baseLine);
 
   // IP filter (network category or when IPs are provided)
   const parsedIPs = parseIPs(ips);
@@ -31,10 +39,28 @@ export function buildSPL({ index, sourcetype, timeRange, ips, queryType, categor
   }
 
   // Stats command based on query type and category
-  const stats = buildStats(queryType, category, parsedIPs);
+  const stats = buildStats(queryType, category, parsedIPs, customFields);
   lines = lines.concat(stats);
 
   return lines.join('\n');
+}
+
+/**
+ * Convert the customFields map into SPL field=value filter tokens.
+ * Multi-word values are quoted. Wildcards are preserved.
+ * @param {object} customFields
+ * @returns {string[]}  — array of "field=value" strings (one per non-empty field)
+ */
+function buildFieldFilters(customFields) {
+  if (!customFields || typeof customFields !== 'object') return [];
+  return Object.entries(customFields)
+    .filter(([, v]) => v && String(v).trim().length > 0)
+    .map(([k, v]) => {
+      const val = String(v).trim();
+      // If value contains spaces and isn't already quoted → wrap in quotes
+      const quoted = val.includes(' ') && !val.startsWith('"') ? `"${val}"` : val;
+      return `${k}=${quoted}`;
+    });
 }
 
 function parseIPs(raw) {
@@ -49,8 +75,13 @@ function isValidIPOrCIDR(s) {
   return /^[\d.:/a-zA-Z0-9\-]+$/.test(s);
 }
 
-function buildStats(queryType, category, ips) {
+function buildStats(queryType, category, ips, customFields) {
   const qt = queryType || '';
+
+  // Determine if a user/hostname field is already being filtered (for smarter stats)
+  const hasUserFilter   = customFields && (customFields.user || customFields.username);
+  const hasHostFilter   = customFields && (customFields.host || customFields.hostname ||
+                          customFields.NodeName || customFields.NodeDNS);
 
   // Network
   if (category === 'network') {
@@ -74,6 +105,30 @@ function buildStats(queryType, category, ips) {
         '| sort -total_mb'
       ];
     }
+    if (qt.includes('Interface')) {
+      return [
+        '| stats count, sum(bytes) as total_bytes by host, InterfaceAlias, ifInOctets, ifOutOctets',
+        '| sort -total_bytes'
+      ];
+    }
+    if (qt.includes('Node Status')) {
+      return [
+        '| stats latest(Status) as Status, latest(NodeName) as NodeName by host, NodeDNS, SiteID',
+        '| sort NodeName'
+      ];
+    }
+    if (qt.includes('Alert')) {
+      return [
+        '| stats count by NodeName, NodeDNS, SiteID, AlertMessage',
+        '| sort -count'
+      ];
+    }
+    if (qt.includes('Performance')) {
+      return [
+        '| stats avg(cpu_load) as avg_cpu, avg(mem_used) as avg_mem, avg(ifInOctets) as avg_in by NodeName, NodeDNS',
+        '| sort -avg_cpu'
+      ];
+    }
     // Default: IP lookup
     return [
       '| stats count, sum(bytes) as total_bytes by src_ip, dest_ip, protocol',
@@ -84,8 +139,9 @@ function buildStats(queryType, category, ips) {
   // Server
   if (category === 'server') {
     if (qt.includes('Auth') || qt.includes('Login')) {
+      const groupBy = hasUserFilter ? 'user, src_ip, action, host' : 'user, src_ip, action';
       return [
-        '| stats count by user, src_ip, action',
+        `| stats count by ${groupBy}`,
         '| where action="failure" OR action="failed"',
         '| sort -count'
       ];
@@ -138,8 +194,9 @@ function buildStats(queryType, category, ips) {
       ];
     }
     if (qt.includes('Auth') || qt.includes('Login')) {
+      const groupBy = hasUserFilter ? 'user, action, src_ip, host' : 'user, action, src_ip';
       return [
-        '| stats count by user, action, src_ip',
+        `| stats count by ${groupBy}`,
         '| sort -count'
       ];
     }
@@ -155,10 +212,10 @@ function buildStats(queryType, category, ips) {
 /**
  * Compute optimization metric cards for the current SPL.
  * @param {string} spl
- * @param {object} opts  — { index, sourcetype, ips, timeRange }
+ * @param {object} opts  — { index, sourcetype, ips, timeRange, customFields }
  * @returns {Array<{label: string, status: 'good'|'warning'|'danger', detail: string}>}
  */
-export function computeMetrics(spl, { index, sourcetype, ips, timeRange }) {
+export function computeMetrics(spl, { index, sourcetype, ips, timeRange, customFields }) {
   const metrics = [];
 
   // 1. Index scope
@@ -186,15 +243,41 @@ export function computeMetrics(spl, { index, sourcetype, ips, timeRange }) {
     detail: `earliest=${earliest}`
   });
 
-  // 4. IP filter / field filter
+  // 4. Field filter coverage (IP + custom fields)
   const parsedIPs = ips ? ips.split(',').map(s => s.trim()).filter(Boolean) : [];
   const hasIPFilter = parsedIPs.length > 0;
+
+  const activeCustomFields = customFields
+    ? Object.entries(customFields).filter(([, v]) => v && String(v).trim())
+    : [];
+  const hasCustomFields = activeCustomFields.length > 0;
+
   const hasFieldFilter = spl.includes('| where') || spl.includes('| search');
-  metrics.push({
-    label: hasIPFilter ? 'IP Indexed' : (hasFieldFilter ? 'Field Filtered' : 'No Field Filter'),
-    status: (hasIPFilter || hasFieldFilter) ? 'good' : 'warning',
-    detail: hasIPFilter ? `${parsedIPs.length} IP(s) specified` : (hasFieldFilter ? 'where/search applied' : 'Consider adding filters')
-  });
+
+  let filterLabel, filterStatus, filterDetail;
+  if (hasIPFilter && hasCustomFields) {
+    filterLabel  = 'IP + Field Filtered';
+    filterStatus = 'good';
+    filterDetail = `${parsedIPs.length} IP(s) + ${activeCustomFields.length} field(s)`;
+  } else if (hasIPFilter) {
+    filterLabel  = 'IP Indexed';
+    filterStatus = 'good';
+    filterDetail = `${parsedIPs.length} IP(s) specified`;
+  } else if (hasCustomFields) {
+    filterLabel  = 'Field Filtered';
+    filterStatus = 'good';
+    filterDetail = activeCustomFields.map(([k]) => k).join(', ');
+  } else if (hasFieldFilter) {
+    filterLabel  = 'Field Filtered';
+    filterStatus = 'good';
+    filterDetail = 'where/search applied';
+  } else {
+    filterLabel  = 'No Field Filter';
+    filterStatus = 'warning';
+    filterDetail = 'Consider adding filters';
+  }
+
+  metrics.push({ label: filterLabel, status: filterStatus, detail: filterDetail });
 
   return metrics;
 }
