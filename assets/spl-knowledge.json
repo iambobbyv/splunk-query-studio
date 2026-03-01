@@ -1,0 +1,676 @@
+{
+  "version": "1.0",
+  "updated": "2026-02-28",
+  "commands": [
+    {
+      "name": "stats",
+      "category": "Aggregation",
+      "syntax": "| stats <stat-func>(<field>) [as <alias>] [by <field-list>]",
+      "description": "Calculates aggregate statistics. The most performance-efficient aggregation command — Splunk can push computation to indexers.",
+      "functions": [
+        { "fn": "count",     "desc": "Number of events" },
+        { "fn": "sum",       "desc": "Sum of a numeric field" },
+        { "fn": "avg",       "desc": "Average of a numeric field" },
+        { "fn": "min",       "desc": "Minimum value" },
+        { "fn": "max",       "desc": "Maximum value" },
+        { "fn": "dc",        "desc": "Distinct count (unique values)" },
+        { "fn": "values",    "desc": "Multi-value list of distinct values" },
+        { "fn": "list",      "desc": "Multi-value list including duplicates" },
+        { "fn": "earliest",  "desc": "Value at the earliest time" },
+        { "fn": "latest",    "desc": "Value at the latest time" },
+        { "fn": "range",     "desc": "max minus min" },
+        { "fn": "stdev",     "desc": "Standard deviation" },
+        { "fn": "perc90",    "desc": "90th percentile" }
+      ],
+      "examples": [
+        "| stats count by src_ip, dest_ip, protocol",
+        "| stats sum(bytes) as total_bytes, count by src_ip",
+        "| stats avg(cpu_load) as avg_cpu, max(cpu_load) as peak_cpu by host",
+        "| stats dc(user) as unique_users by host",
+        "| stats latest(Status) as Status, latest(NodeName) as Name by NodeDNS"
+      ],
+      "tips": [
+        "Place stats as early as possible to reduce event volume sent to search head",
+        "Prefer stats over eventstats when you only need the aggregated result",
+        "Use dc() instead of values() when you only need a count of unique values"
+      ]
+    },
+    {
+      "name": "search",
+      "category": "Filtering",
+      "syntax": "search <search-expression>",
+      "description": "Filters events matching an expression. When used as the first command (no pipe), it is the most efficient filter — evaluated at the indexer level.",
+      "examples": [
+        "search index=netops sourcetype=cisco:ios earliest=-1h",
+        "| search action=failure",
+        "| search src_ip=192.168.1.* OR dest_ip=10.0.0.*"
+      ],
+      "tips": [
+        "Inline filters on the base search line are faster than post-pipe search",
+        "Use field=value format in the base search to leverage index-time fields",
+        "Wildcards at the start of a value (e.g., *admin) defeat term indexing"
+      ]
+    },
+    {
+      "name": "where",
+      "category": "Filtering",
+      "syntax": "| where <expression>",
+      "description": "Filters events using an eval expression. Evaluated after extraction, so less efficient than inline search. Use for numeric comparisons and complex logic.",
+      "examples": [
+        "| where count > 100",
+        "| where status >= 400 AND status < 500",
+        "| where isnotnull(user) AND len(user) > 0",
+        "| where action=\"failure\" OR action=\"failed\""
+      ],
+      "tips": [
+        "Prefer inline field=value filters over | where when possible",
+        "Use | where for numeric range comparisons (count > 100)",
+        "| where action=failure (no quotes) uses search-mode matching, which is case-insensitive"
+      ]
+    },
+    {
+      "name": "eval",
+      "category": "Field Calculation",
+      "syntax": "| eval <field>=<expression> [, <field>=<expression>...]",
+      "description": "Creates or modifies fields using expressions. Supports arithmetic, string functions, conditionals, and conversion functions.",
+      "functions": [
+        { "fn": "if(cond,true,false)", "desc": "Conditional" },
+        { "fn": "case(cond1,val1,...)", "desc": "Multi-branch conditional" },
+        { "fn": "round(num,decimals)", "desc": "Round a number" },
+        { "fn": "len(str)", "desc": "String length" },
+        { "fn": "lower(str)", "desc": "Lowercase" },
+        { "fn": "upper(str)", "desc": "Uppercase" },
+        { "fn": "substr(str,start,len)", "desc": "Substring" },
+        { "fn": "split(str,delim)", "desc": "Split string to multi-value" },
+        { "fn": "mvcount(mv)", "desc": "Count of multi-value field items" },
+        { "fn": "now()", "desc": "Current epoch time" },
+        { "fn": "strftime(time,format)", "desc": "Format epoch as string" },
+        { "fn": "strptime(str,format)", "desc": "Parse string as epoch" },
+        { "fn": "cidrmatch(cidr,ip)", "desc": "True if IP is in CIDR range" },
+        { "fn": "match(str,regex)", "desc": "True if string matches regex" },
+        { "fn": "coalesce(f1,f2,...)", "desc": "First non-null value" }
+      ],
+      "examples": [
+        "| eval mb = round(bytes / 1048576, 2)",
+        "| eval threat_level = if(count > 100, \"high\", if(count > 20, \"medium\", \"low\"))",
+        "| eval label = coalesce(user, username, \"unknown\")",
+        "| eval is_internal = cidrmatch(\"10.0.0.0/8\", src_ip)",
+        "| eval day = strftime(_time, \"%Y-%m-%d\")"
+      ],
+      "tips": [
+        "Chain multiple evals in one command: | eval a=x, b=y",
+        "Use coalesce() to handle multiple possible field names (e.g., user vs username)",
+        "eval runs after extraction — consider rex for pattern-based extraction instead"
+      ]
+    },
+    {
+      "name": "sort",
+      "category": "Output",
+      "syntax": "| sort [limit] [-|+]<field> [...]",
+      "description": "Sorts results. Prefix with - for descending (default), + for ascending. Limit reduces I/O.",
+      "examples": [
+        "| sort -count",
+        "| sort 100 -total_bytes",
+        "| sort + _time",
+        "| sort -avg_cpu, + host"
+      ],
+      "tips": [
+        "Always include a limit with sort (e.g., sort 1000 -count) to avoid sorting billions of events",
+        "sort -count is most common — highest-count items first"
+      ]
+    },
+    {
+      "name": "table",
+      "category": "Output",
+      "syntax": "| table <field-list>",
+      "description": "Retains only specified fields and displays them as a table. Use at the end of a search to clean up output.",
+      "examples": [
+        "| table src_ip, dest_ip, bytes, protocol, action",
+        "| table user, host, action, count",
+        "| table NodeName, NodeDNS, Status, SiteID"
+      ],
+      "tips": [
+        "Use table at the very end to select which fields to display",
+        "table removes all other fields — use fields instead if you need to keep others"
+      ]
+    },
+    {
+      "name": "fields",
+      "category": "Field Management",
+      "syntax": "| fields [+|-] <field-list>",
+      "description": "Keeps (+) or removes (-) specified fields. Removing unneeded fields early improves performance by reducing data passed to subsequent commands.",
+      "examples": [
+        "| fields src_ip, dest_ip, bytes, protocol",
+        "| fields - _raw, _bkt, _cd",
+        "| fields + host, user, action"
+      ],
+      "tips": [
+        "Use '| fields - _raw' to strip raw event data and speed up downstream commands",
+        "Drop fields early in the pipeline to reduce memory usage"
+      ]
+    },
+    {
+      "name": "rename",
+      "category": "Field Management",
+      "syntax": "| rename <old-field> AS <new-field> [...]",
+      "description": "Renames fields for cleaner output or to resolve naming conflicts.",
+      "examples": [
+        "| rename src_ip AS \"Source IP\", dest_ip AS \"Destination IP\"",
+        "| rename count AS \"Event Count\"",
+        "| rename NodeDNS AS \"Node FQDN\""
+      ],
+      "tips": [
+        "Use rename before table to display human-friendly column headers"
+      ]
+    },
+    {
+      "name": "rex",
+      "category": "Field Extraction",
+      "syntax": "| rex [field=<field>] \"<regex-with-named-groups>\"",
+      "description": "Extracts fields using named capture groups in a regular expression. More flexible than transforms.conf for ad-hoc extraction.",
+      "examples": [
+        "| rex field=_raw \"src_ip=(?<src_ip>[\\\\d.]+)\"",
+        "| rex field=message \"user=(?<extracted_user>[a-zA-Z0-9_]+)\"",
+        "| rex field=uri \"(?<path>/[^?]+)\\\\??(?<query>.*)?\""
+      ],
+      "tips": [
+        "Named groups (?<fieldname>...) create new fields",
+        "Use field= to target a specific field rather than _raw",
+        "For repeated patterns use mode=sed for substitution"
+      ]
+    },
+    {
+      "name": "timechart",
+      "category": "Visualization",
+      "syntax": "| timechart [span=<time>] <stat-func>(<field>) [by <field>]",
+      "description": "Creates a time-series chart. Ideal for trending data over time. Each unique value in the 'by' field becomes a separate series.",
+      "examples": [
+        "| timechart span=5m count",
+        "| timechart span=1h count by action",
+        "| timechart span=15m avg(cpu_load) by host",
+        "| timechart span=1d sum(bytes) as daily_bytes"
+      ],
+      "tips": [
+        "Adjust span to match your time range (e.g., span=5m for last hour, span=1h for last day)",
+        "Limit 'by' field cardinality — too many series makes charts unreadable",
+        "Use | timechart limit=10 to cap the number of series displayed"
+      ]
+    },
+    {
+      "name": "dedup",
+      "category": "Filtering",
+      "syntax": "| dedup [N] <field-list> [sortby [+|-]<field>]",
+      "description": "Removes duplicate events based on specified field values. Optionally keeps N copies per unique combination.",
+      "examples": [
+        "| dedup src_ip, dest_ip",
+        "| dedup 1 user sortby -_time",
+        "| dedup host, process_name"
+      ],
+      "tips": [
+        "dedup is expensive on large datasets — consider stats dc() instead",
+        "Use sortby to control which duplicate is kept (e.g., most recent)"
+      ]
+    },
+    {
+      "name": "top",
+      "category": "Aggregation",
+      "syntax": "| top [limit=N] <field-list> [by <field>]",
+      "description": "Returns the top N most common values of a field, with count and percentage. Shortcut for a common stats + sort pattern.",
+      "examples": [
+        "| top 10 src_ip",
+        "| top limit=20 user by host",
+        "| top 5 dest_ip by src_ip"
+      ],
+      "tips": [
+        "top is a shortcut for | stats count by field | sort -count | head N",
+        "Default limit is 10 — always specify limit for clarity"
+      ]
+    },
+    {
+      "name": "rare",
+      "category": "Aggregation",
+      "syntax": "| rare [limit=N] <field-list>",
+      "description": "Returns the least common values. Useful for detecting anomalous or infrequent events.",
+      "examples": [
+        "| rare limit=10 src_ip",
+        "| rare user",
+        "| rare process_name by host"
+      ],
+      "tips": [
+        "Useful for security investigations — rare processes, users, or IPs stand out as anomalies"
+      ]
+    },
+    {
+      "name": "lookup",
+      "category": "Enrichment",
+      "syntax": "| lookup <lookup-name> <input-field> [AS <field>] OUTPUT <output-fields>",
+      "description": "Enriches events by joining with a CSV lookup file or a Splunk lookup definition. Adds context from external data sources.",
+      "examples": [
+        "| lookup geoip src_ip OUTPUT country, city, lat, lon",
+        "| lookup asset_inventory host OUTPUT owner, department, criticality",
+        "| lookup user_directory username OUTPUT full_name, email, manager"
+      ],
+      "tips": [
+        "Lookups are evaluated at the search head — place them after stats to reduce event count",
+        "Use OUTPUT (not OUTPUTNEW) to overwrite existing field values",
+        "Use OUTPUTNEW to only populate fields when they don't already exist"
+      ]
+    },
+    {
+      "name": "transaction",
+      "category": "Correlation",
+      "syntax": "| transaction <field-list> [maxspan=<time>] [maxpause=<time>]",
+      "description": "Groups events into transactions based on shared field values and time proximity. Use sparingly — extremely resource intensive.",
+      "examples": [
+        "| transaction src_ip maxspan=5m maxpause=30s",
+        "| transaction session_id",
+        "| transaction user, host maxspan=1h"
+      ],
+      "tips": [
+        "transaction is very expensive — prefer stats or streamstats when possible",
+        "Always set maxspan to prevent runaway transactions",
+        "Consider using 'stats list' as a lighter alternative"
+      ]
+    },
+    {
+      "name": "eventstats",
+      "category": "Aggregation",
+      "syntax": "| eventstats <stat-func>(<field>) [as <alias>] [by <field-list>]",
+      "description": "Like stats, but retains all original events and adds aggregate fields to each event. Useful for computing per-group statistics alongside raw events.",
+      "examples": [
+        "| eventstats avg(response_time) as avg_rt by host",
+        "| eventstats sum(bytes) as total_bytes",
+        "| eventstats count as group_count by src_ip"
+      ],
+      "tips": [
+        "eventstats is more memory-intensive than stats — use stats when you don't need raw events",
+        "Common pattern: | eventstats avg(field) as avg | where field > avg * 2"
+      ]
+    },
+    {
+      "name": "streamstats",
+      "category": "Aggregation",
+      "syntax": "| streamstats <stat-func>(<field>) [as <alias>] [by <field-list>] [window=N]",
+      "description": "Running/rolling statistics as events are processed in time order. Useful for cumulative totals and moving averages.",
+      "examples": [
+        "| streamstats count as running_count",
+        "| streamstats window=10 avg(bytes) as moving_avg_bytes by src_ip",
+        "| streamstats sum(count) as cumulative_events by action"
+      ],
+      "tips": [
+        "Use window= for moving/rolling calculations (e.g., 10-event moving average)",
+        "Without window=, streamstats computes cumulative running totals",
+        "Requires events to be sorted by _time first"
+      ]
+    },
+    {
+      "name": "appendpipe",
+      "category": "Correlation",
+      "syntax": "| appendpipe [run_in_preview=<bool>] [<sub-search>]",
+      "description": "Appends results of a sub-search to current results. Useful for adding totals rows or combining multiple query perspectives.",
+      "examples": [
+        "| appendpipe [ stats count as count, \"TOTAL\" as src_ip ]",
+        "| appendpipe [ where action=\"denied\" | stats count as blocked ]"
+      ],
+      "tips": [
+        "Use for adding summary/total rows to a table",
+        "Avoid in performance-critical searches — it runs a second search"
+      ]
+    },
+    {
+      "name": "head / tail",
+      "category": "Output",
+      "syntax": "| head [N]   |  | tail [N]",
+      "description": "head returns the first N events; tail returns the last N events (by current sort order). Default N is 10.",
+      "examples": [
+        "| head 100",
+        "| tail 50",
+        "| sort -count | head 20"
+      ],
+      "tips": [
+        "Always use head after sort to limit output efficiently",
+        "head is evaluated at the search head — use limit=N in the base search for indexer-level limiting"
+      ]
+    },
+    {
+      "name": "bucket",
+      "category": "Field Calculation",
+      "syntax": "| bucket [span=<size>] <field>",
+      "description": "Groups continuous values (especially _time) into discrete buckets. Alias: bin.",
+      "examples": [
+        "| bucket _time span=1h",
+        "| bucket bytes span=1000",
+        "| bucket span=5m _time | stats count by _time, action"
+      ],
+      "tips": [
+        "Use before stats to enable time-series grouping",
+        "timechart is a simpler shortcut when working with _time buckets"
+      ]
+    },
+    {
+      "name": "iplocation",
+      "category": "Enrichment",
+      "syntax": "| iplocation [prefix=<str>] <ip-field>",
+      "description": "Adds geolocation fields (Country, City, Region, lat, lon) for an IP address field using the built-in Splunk MaxMind database.",
+      "examples": [
+        "| iplocation src_ip",
+        "| iplocation prefix=geo_ dest_ip",
+        "| iplocation src_ip | stats count by Country"
+      ],
+      "tips": [
+        "iplocation only works for public IPs — private IPs return empty values",
+        "Splunk's built-in database may be outdated — consider a custom lookup for precision"
+      ]
+    },
+    {
+      "name": "inputlookup",
+      "category": "Data Sources",
+      "syntax": "| inputlookup <lookup-name> [where <condition>]",
+      "description": "Returns all rows from a lookup file as search results, without requiring a base search.",
+      "examples": [
+        "| inputlookup asset_inventory",
+        "| inputlookup user_directory where department=\"IT\"",
+        "| inputlookup blocked_ips | fields ip, reason, added_date"
+      ],
+      "tips": [
+        "Use as a starting point when you want to query a lookup table directly",
+        "Combine with | join or | appendcols to merge with search results"
+      ]
+    },
+    {
+      "name": "join",
+      "category": "Correlation",
+      "syntax": "| join [type=inner|outer|left] <field-list> [<sub-search>]",
+      "description": "Joins results with a sub-search on matching field values. Functionally similar to SQL JOIN. Expensive — prefer lookup for static enrichment.",
+      "examples": [
+        "| join src_ip [ search index=threat_intel | fields ip, threat_score ]",
+        "| join type=left user [ inputlookup user_directory | fields username, dept ]"
+      ],
+      "tips": [
+        "join is expensive — prefer | lookup for static data enrichment",
+        "Default type is inner — use left to keep events with no match",
+        "Sub-search is limited to 50,000 results by default"
+      ]
+    },
+    {
+      "name": "makeresults",
+      "category": "Utility",
+      "syntax": "| makeresults [count=N] [annotate=<bool>]",
+      "description": "Generates N empty result rows. Used for testing pipelines, building dashboards, or creating synthetic data.",
+      "examples": [
+        "| makeresults | eval test_field=\"hello\"",
+        "| makeresults count=10 | eval x=random()%100"
+      ],
+      "tips": [
+        "Useful for debugging eval expressions without running a real search"
+      ]
+    },
+    {
+      "name": "map",
+      "category": "Correlation",
+      "syntax": "| map search=\"<spl-string>\" [maxsearches=N]",
+      "description": "Runs a sub-search for each result row, substituting field values. Similar to a loop. Very expensive — use sparingly.",
+      "examples": [
+        "| map search=\"search index=netops src_ip=$src_ip$\"",
+        "| map maxsearches=5 search=\"search index=os host=$host$ | stats count\""
+      ],
+      "tips": [
+        "map is extremely resource intensive — limit with maxsearches",
+        "Prefer | join or | lookup when possible"
+      ]
+    },
+    {
+      "name": "predict",
+      "category": "Analytics",
+      "syntax": "| predict <field> [algorithm=<algo>] [future_timespan=<time>]",
+      "description": "Uses machine learning to predict future values of a time-series field. Requires the Machine Learning Toolkit (MLTK) or built-in algorithms.",
+      "examples": [
+        "| timechart span=1h count | predict count future_timespan=24h",
+        "| timechart span=1d sum(bytes) as daily_bytes | predict daily_bytes"
+      ],
+      "tips": [
+        "Requires a timechart or bucket + stats pipeline as input",
+        "Use for capacity planning or anomaly baselining"
+      ]
+    },
+    {
+      "name": "anomalydetection",
+      "category": "Analytics",
+      "syntax": "| anomalydetection <field>",
+      "description": "Identifies anomalous events using statistical thresholds. Marks events as anomalous based on deviation from expected patterns.",
+      "examples": [
+        "| stats count by src_ip | anomalydetection count",
+        "| timechart count | anomalydetection count"
+      ],
+      "tips": [
+        "Requires numeric input — compute a stat first (count, avg, etc.)",
+        "Higher threshold = fewer anomalies flagged"
+      ]
+    }
+  ],
+
+  "optimization_rules": [
+    {
+      "id": "wildcard_index",
+      "title": "Wildcard Index",
+      "severity": "warning",
+      "pattern": "index=.*\\*",
+      "description": "Wildcard indexes search across multiple indexes, increasing I/O significantly.",
+      "recommendation": "Specify an exact index (e.g., index=netops) or list specific indexes (index=netops OR index=netfw).",
+      "example_fix": "index=netops OR index=netfw"
+    },
+    {
+      "id": "no_time_bound",
+      "title": "No Time Constraint",
+      "severity": "danger",
+      "description": "Searches without an earliest= constraint scan all data — avoid in production.",
+      "recommendation": "Always add earliest=-1h (or appropriate range) to the base search.",
+      "example_fix": "earliest=-1h"
+    },
+    {
+      "id": "broad_time_range",
+      "title": "Wide Time Range (7d+)",
+      "severity": "warning",
+      "description": "Searching 7+ days dramatically increases data scanned and search duration.",
+      "recommendation": "Narrow to the minimum needed time window for the investigation.",
+      "example_fix": "earliest=-24h"
+    },
+    {
+      "id": "no_field_filter",
+      "title": "No Field Filters",
+      "severity": "warning",
+      "description": "Without field filters (user=, host=, src_ip=, etc.), every event in the index is evaluated.",
+      "recommendation": "Add at least one indexed field filter in the base search line before the first pipe.",
+      "example_fix": "host=web-server-01 OR src_ip=192.168.1.0/24"
+    },
+    {
+      "id": "wildcard_prefix",
+      "title": "Leading Wildcard",
+      "severity": "danger",
+      "description": "Values like *admin or *error cannot use term indexes — they force a full scan of every event.",
+      "recommendation": "Use trailing wildcards only (admin* or error*), or use | rex for regex extraction.",
+      "example_fix": "action=fail* instead of action=*fail"
+    },
+    {
+      "id": "transaction_overuse",
+      "title": "Transaction Command",
+      "severity": "warning",
+      "description": "| transaction is one of the most resource-intensive commands. It buffers all events in memory.",
+      "recommendation": "Replace with | stats list() for grouping, or | streamstats for running computations.",
+      "example_fix": "| stats list(action) as actions, count by session_id"
+    },
+    {
+      "id": "raw_scan",
+      "title": "Searching _raw",
+      "severity": "warning",
+      "description": "Using | search or | where on _raw scans full raw event text instead of extracted fields.",
+      "recommendation": "Extract fields with | rex first, then filter on the extracted field.",
+      "example_fix": "| rex field=_raw \"user=(?<user>[^ ]+)\" | where user=\"admin\""
+    },
+    {
+      "id": "late_filter",
+      "title": "Filter After Heavy Processing",
+      "severity": "warning",
+      "description": "Placing | where or | search after expensive commands (transaction, stats) means processing more data than necessary.",
+      "recommendation": "Move field filters to the base search line before any pipes.",
+      "example_fix": "Add filter conditions directly to the index=... line"
+    },
+    {
+      "id": "subsearch_large",
+      "title": "Large Sub-search",
+      "severity": "warning",
+      "description": "Sub-searches (brackets) are limited to 50,000 results and run in memory on the search head.",
+      "recommendation": "Use | join or | lookup for large datasets instead of sub-searches.",
+      "example_fix": "| lookup threat_ips src_ip OUTPUT threat_score"
+    },
+    {
+      "id": "no_sourcetype",
+      "title": "No Sourcetype Filter",
+      "severity": "warning",
+      "description": "Without sourcetype=, all data in the index is evaluated regardless of format.",
+      "recommendation": "Always specify sourcetype= to enable sourcetype-level indexing acceleration.",
+      "example_fix": "sourcetype=cisco:ios"
+    }
+  ],
+
+  "query_templates": [
+    {
+      "id": "network_top_talkers",
+      "name": "Top Network Talkers",
+      "category": "network",
+      "description": "Find the top source/destination IP pairs by traffic volume",
+      "spl": "index=netops sourcetype=cisco:ios earliest=-1h\n| stats count, sum(bytes) as total_bytes by src_ip, dest_ip, protocol\n| sort -total_bytes\n| head 20\n| eval mb = round(total_bytes/1048576, 2)\n| table src_ip, dest_ip, protocol, count, mb"
+    },
+    {
+      "id": "firewall_denied",
+      "name": "Firewall Denied Traffic",
+      "category": "network",
+      "description": "Show all denied/blocked connections sorted by frequency",
+      "spl": "index=netfw sourcetype=cisco:asa earliest=-4h\n| stats count by src_ip, dest_ip, dest_port, action\n| where action=\"denied\" OR action=\"blocked\"\n| sort -count\n| head 50"
+    },
+    {
+      "id": "failed_logins",
+      "name": "Failed Login Attempts",
+      "category": "server",
+      "description": "Detect brute-force attempts by counting auth failures per user and IP",
+      "spl": "index=os sourcetype=linux_syslog earliest=-1h\n| stats count by user, src_ip, action\n| where action=\"failure\" OR action=\"failed\"\n| sort -count\n| where count > 5"
+    },
+    {
+      "id": "windows_auth_failure",
+      "name": "Windows Failed Authentication (Event 4625)",
+      "category": "server",
+      "description": "Windows login failures grouped by account and source",
+      "spl": "index=wineventlog sourcetype=\"WinEventLog:Security\" earliest=-24h\nEventCode=4625\n| stats count by user, src_ip, Logon_Type, host\n| sort -count"
+    },
+    {
+      "id": "solarwinds_node_status",
+      "name": "SolarWinds Node Status Report",
+      "category": "network",
+      "description": "Current status of all monitored nodes from Orion",
+      "spl": "index=solarwinds* sourcetype=solarwinds:orion earliest=-15m\n| stats latest(Status) as Status, latest(NodeName) as NodeName by host, NodeDNS, SiteID\n| eval status_label = case(Status==\"Up\",\"🟢 Up\", Status==\"Down\",\"🔴 Down\", 1==1,\"🟡 Unknown\")\n| sort NodeName\n| table NodeName, NodeDNS, SiteID, status_label"
+    },
+    {
+      "id": "solarwinds_alerts",
+      "name": "SolarWinds Active Alerts",
+      "category": "network",
+      "description": "Recent Orion alert events with node context",
+      "spl": "index=solarwinds* sourcetype=solarwinds:orion earliest=-1h\n| stats count by NodeName, NodeDNS, SiteID, AlertMessage\n| sort -count\n| table NodeName, NodeDNS, SiteID, AlertMessage, count"
+    },
+    {
+      "id": "solarwinds_interface",
+      "name": "SolarWinds Interface Traffic",
+      "category": "network",
+      "description": "Network interface utilization from Orion pollers",
+      "spl": "index=solarwinds* sourcetype=solarwinds:orion earliest=-1h\n| stats count, sum(ifInOctets) as in_bytes, sum(ifOutOctets) as out_bytes by host, InterfaceAlias\n| eval in_mb = round(in_bytes/1048576, 2)\n| eval out_mb = round(out_bytes/1048576, 2)\n| sort -in_bytes\n| table host, InterfaceAlias, in_mb, out_mb, count"
+    },
+    {
+      "id": "web_error_rates",
+      "name": "Web Application Error Rates",
+      "category": "applications",
+      "description": "HTTP error rate by URI path over time",
+      "spl": "index=web sourcetype=access_combined earliest=-4h\n| eval is_error = if(status >= 400, 1, 0)\n| stats count as total, sum(is_error) as errors by uri_path\n| eval error_pct = round((errors/total)*100, 1)\n| where total > 10\n| sort -error_pct\n| head 25"
+    },
+    {
+      "id": "okta_mfa",
+      "name": "Okta MFA Events",
+      "category": "applications",
+      "description": "MFA success/failure events grouped by user",
+      "spl": "index=okta sourcetype=OktaIM2:log earliest=-24h\n| where eventType LIKE \"user.mfa%\"\n| stats count by user, outcome, eventType\n| sort -count"
+    },
+    {
+      "id": "crowdstrike_detections",
+      "name": "CrowdStrike Detections",
+      "category": "server",
+      "description": "Recent detection events with severity and host context",
+      "spl": "index=crowdstrike sourcetype=crowdstrike:fdr earliest=-24h\nComputerName=*\n| stats count by hostname, UserName, FileName, Severity, PatternDispositionDescription\n| sort -count\n| head 50"
+    },
+    {
+      "id": "vmware_vm_events",
+      "name": "VMware VM Events",
+      "category": "datacenter",
+      "description": "vSphere VM lifecycle events (power on/off, vMotion, snapshot)",
+      "spl": "index=vmware sourcetype=vmware:esxi:hostd earliest=-24h\n| stats count by vm_name, event_type, host\n| sort -count"
+    },
+    {
+      "id": "bandwidth_usage",
+      "name": "Top Bandwidth Consumers",
+      "category": "network",
+      "description": "Top IP addresses by total bandwidth consumed",
+      "spl": "index=netops earliest=-1h\n| eval mb = round(bytes/1048576, 2)\n| stats sum(mb) as total_mb by src_ip, dest_ip\n| sort -total_mb\n| head 20\n| rename total_mb AS \"Total MB\""
+    },
+    {
+      "id": "lateral_movement",
+      "name": "Lateral Movement Detection",
+      "category": "server",
+      "description": "Detect accounts connecting to many distinct hosts (potential lateral movement)",
+      "spl": "index=wineventlog sourcetype=\"WinEventLog:Security\" earliest=-4h\nEventCode=4624\n| stats dc(host) as unique_hosts, values(host) as hosts by user\n| where unique_hosts > 5\n| sort -unique_hosts"
+    },
+    {
+      "id": "dns_lookup_spikes",
+      "name": "Unusual DNS Activity",
+      "category": "network",
+      "description": "Hosts with abnormally high DNS query volume (C2 beaconing indicator)",
+      "spl": "index=netops sourcetype=stream:dns earliest=-1h\n| stats count by src_ip, query\n| where count > 100\n| sort -count\n| head 50"
+    }
+  ],
+
+  "field_reference": {
+    "common": ["host", "source", "sourcetype", "_time", "_raw", "index"],
+    "network": ["src_ip", "dest_ip", "src_port", "dest_port", "protocol", "bytes", "packets", "action", "duration", "app", "InterfaceAlias"],
+    "auth": ["user", "username", "action", "src_ip", "dest", "Logon_Type", "outcome", "eventType"],
+    "windows": ["EventCode", "user", "ComputerName", "host", "Message", "Logon_Type", "AccountName", "SubjectUserName"],
+    "linux": ["user", "process", "pid", "message", "facility", "severity"],
+    "web": ["status", "uri_path", "clientip", "bytes", "method", "referer", "useragent"],
+    "solarwinds": ["NodeName", "NodeDNS", "SiteID", "InterfaceAlias", "Status", "AlertMessage", "ifInOctets", "ifOutOctets"],
+    "vmware": ["vm_name", "event_type", "host", "cpu_usage", "mem_usage"],
+    "crowdstrike": ["hostname", "UserName", "FileName", "Severity", "ComputerName", "PatternDispositionDescription"]
+  },
+
+  "common_errors": [
+    {
+      "error": "index doesn't exist",
+      "cause": "The specified index has not been created in Splunk or you lack access.",
+      "fix": "Verify the index name with your Splunk admin. Common indexes: main, netops, os, wineventlog, web."
+    },
+    {
+      "error": "Unknown search command",
+      "cause": "Typo in command name or app not installed.",
+      "fix": "Check spelling: stats (not stat), where (not filter), timechart (not timegraph)."
+    },
+    {
+      "error": "Error in stats: by clause",
+      "cause": "Field name in 'by' clause doesn't exist in the results.",
+      "fix": "Check that the field is being extracted. Use | fields to see available fields."
+    },
+    {
+      "error": "Too many results",
+      "cause": "Search returns millions of events before the pipe.",
+      "fix": "Add more filters to the base search: specific host=, user=, or narrow earliest= range."
+    },
+    {
+      "error": "Search took too long",
+      "cause": "Missing time bound, wildcard index, or expensive command (transaction, join).",
+      "fix": "Add earliest=, narrow index/sourcetype, and replace transaction with stats."
+    }
+  ]
+}

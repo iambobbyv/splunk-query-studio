@@ -1,13 +1,17 @@
 /**
- * generate-icon.js — Splunk Query Studio professional icon generator
+ * generate-icon.js — Splunk Query Studio "SQS" branded icon generator
  *
  * Produces assets/icon.ico with 4 embedded sizes:
  *   16×16, 32×32, 48×48 → BMP (32-bit BGRA)
  *   256×256             → PNG (lossless, modern Windows / rcedit compatible)
  *
- * Design: Blue gradient rounded-rect background (#1e3a8a → #3b82f6)
- *         White anti-aliased magnifying glass (lens + handle)
- *         Matches the SQS header logo color scheme.
+ * Design (256px):
+ *   • Dark navy-to-deep-blue gradient background with rounded corners
+ *   • 5×7 pixel-font "SQS" centred — S (white), Q (cyan), S (white)
+ *   • Subtle inner-glow ring
+ *
+ * Design (≤48px):
+ *   • Magnifying-glass mark (recognisable at tiny sizes)
  *
  * Usage: node assets/generate-icon.js
  */
@@ -68,7 +72,6 @@ function createCanvas(size) {
     buf,
     size,
 
-    /* Gradient rounded-rect background */
     background(cornerR, [r0,g0,b0], [r1,g1,b1]) {
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
@@ -76,7 +79,7 @@ function createCanvas(size) {
           const ry = Math.max(0, cornerR - y,        y - (size - 1 - cornerR));
           const d  = Math.sqrt(rx * rx + ry * ry);
           if (d > cornerR + 1) continue;
-          const t = (x / (size - 1)) * 0.55 + (y / (size - 1)) * 0.45;
+          const t = (x / (size - 1)) * 0.5 + (y / (size - 1)) * 0.5;
           const r = Math.round(r0 + (r1 - r0) * t);
           const g = Math.round(g0 + (g1 - g0) * t);
           const b = Math.round(b0 + (b1 - b0) * t);
@@ -86,7 +89,6 @@ function createCanvas(size) {
       }
     },
 
-    /* Subtle inner-circle tint */
     fillCircle(cx, cy, r, rr, gg, bb, a) {
       for (let y = Math.floor(cy - r - 2); y <= Math.ceil(cy + r + 2); y++)
         for (let x = Math.floor(cx - r - 2); x <= Math.ceil(cx + r + 2); x++) {
@@ -95,7 +97,6 @@ function createCanvas(size) {
         }
     },
 
-    /* Anti-aliased circle ring */
     strokeCircle(cx, cy, outerR, thickness, rr, gg, bb) {
       const innerR = outerR - thickness;
       for (let y = Math.floor(cy - outerR - 2); y <= Math.ceil(cy + outerR + 2); y++)
@@ -108,7 +109,6 @@ function createCanvas(size) {
         }
     },
 
-    /* Line segment with round caps */
     strokeLine(x1, y1, x2, y2, width, rr, gg, bb) {
       const dx = x2 - x1, dy = y2 - y1;
       const len = Math.hypot(dx, dy) || 1;
@@ -124,54 +124,125 @@ function createCanvas(size) {
         }
     },
 
-    /* Get raw RGBA Uint8Array */
     getRGBA() { return buf; },
   };
+}
+
+/* ── 5×7 Pixel font bitmaps (bit 4 = leftmost column) ───────────────────── */
+const GLYPHS = {
+  //  col: 43210
+  S: [
+    0b01110,   // .███.
+    0b10000,   // █....
+    0b10000,   // █....
+    0b01110,   // .███.
+    0b00001,   // ....█
+    0b00001,   // ....█
+    0b01110,   // .███.
+  ],
+  Q: [
+    0b01110,   // .███.
+    0b10001,   // █...█
+    0b10001,   // █...█
+    0b10001,   // █...█
+    0b10101,   // █.█.█
+    0b10011,   // █..██
+    0b01110,   // .███.
+  ],
+};
+
+/**
+ * Draw a single glyph using filled anti-aliased circles for each "pixel".
+ * @param {object} cv       canvas object
+ * @param {'S'|'Q'} glyph  letter to draw
+ * @param {number} startX   top-left x of letter bounding box
+ * @param {number} startY   top-left y of letter bounding box
+ * @param {number} ps       pixel cell size (px)
+ * @param {number} r,g,b   RGB colour
+ * @param {number} alpha    opacity 0-255
+ */
+function drawGlyph(cv, glyph, startX, startY, ps, r, g, b, alpha = 255) {
+  const rows = GLYPHS[glyph];
+  const half = ps * 0.48;
+  for (let row = 0; row < rows.length; row++) {
+    for (let col = 0; col < 5; col++) {
+      if (rows[row] & (1 << (4 - col))) {
+        const cx = startX + col * ps + half;
+        const cy = startY + row * ps + half;
+        cv.fillCircle(cx, cy, half * 0.92, r, g, b, alpha);
+      }
+    }
+  }
 }
 
 /* ── Draw the SQS icon at any size ──────────────────────────────────────── */
 function drawSQSIcon(size) {
   const cv = createCanvas(size);
-  const s  = size / 256;
+  const sc = size / 256;
 
-  /* Background: dark blue → bright blue gradient, rounded corners */
-  cv.background(Math.round(52 * s), [0x1e, 0x3a, 0x8a], [0x3b, 0x82, 0xf6]);
+  /* Background: dark navy → rich blue, 44px corner radius (scaled) */
+  cv.background(Math.round(44 * sc), [0x06, 0x0a, 0x2e], [0x1a, 0x3a, 0x9a]);
 
-  /* Magnifying glass geometry (tuned at 256px, scaled by s) */
-  const cx     = Math.round(107 * s);   // lens center x
-  const cy     = Math.round(105 * s);   // lens center y
-  const outerR = Math.round(70  * s);   // outer lens radius
-  const stroke = Math.round(19  * s);   // ring stroke width
-  const innerR = outerR - stroke;
+  if (size >= 96) {
+    /* ──────────────────── LARGE: SQS pixel font ────────────────────── */
 
-  /* Subtle inner-lens tint (white @10%) */
-  cv.fillCircle(cx, cy, innerR - 1, 255, 255, 255, 25);
+    // Pixel cell size — at 256px, ps=13 makes the font span ~225px wide
+    const ps   = Math.round(13 * sc);          // cell size
+    const gW   = 5 * ps;                        // glyph width  (5 cols)
+    const gH   = 7 * ps;                        // glyph height (7 rows)
+    const gap  = Math.round(9 * sc);            // gap between letters
+    const totalW = 3 * gW + 2 * gap;
 
-  /* White ring (the lens) */
-  cv.strokeCircle(cx, cy, outerR, stroke, 255, 255, 255);
+    const ox = Math.round((size - totalW) / 2); // left edge of S
+    const oy = Math.round((size - gH) / 2);     // top edge of all letters
 
-  /* Handle — 45° toward bottom-right, starting from lens edge */
-  const ang = Math.PI * 0.25;
-  const hx1 = cx + Math.cos(ang) * (outerR - stroke * 0.45);
-  const hy1 = cy + Math.sin(ang) * (outerR - stroke * 0.45);
-  const hLen = Math.round(60 * s);
-  cv.strokeLine(hx1, hy1, hx1 + Math.cos(ang) * hLen, hy1 + Math.sin(ang) * hLen,
-                stroke, 255, 255, 255);
+    /* Subtle inner glow ring behind text */
+    cv.fillCircle(size / 2, size / 2, size * 0.36, 59, 130, 246, 22);
+    cv.fillCircle(size / 2, size / 2, size * 0.22, 59, 130, 246, 14);
 
-  /* Top-left highlight shimmer on lens */
-  cv.fillCircle(
-    cx - Math.round(33 * s),
-    cy - Math.round(33 * s),
-    Math.round(11 * s),
-    255, 255, 255, 45
-  );
+    /* Shimmer dot top-right */
+    cv.fillCircle(size * 0.78, size * 0.20, size * 0.04, 255, 255, 255, 35);
+
+    /* S (left) — white */
+    drawGlyph(cv, 'S', ox,              oy, ps, 255, 255, 255);
+
+    /* Q (centre) — cyan (#7dd3fc) */
+    drawGlyph(cv, 'Q', ox + gW + gap,   oy, ps, 125, 211, 252);
+
+    /* S (right) — white */
+    drawGlyph(cv, 'S', ox + 2*(gW+gap), oy, ps, 255, 255, 255);
+
+  } else {
+    /* ────────────────────── SMALL: magnifying glass ─────────────────── */
+    const cx     = Math.round(107 * sc);
+    const cy     = Math.round(105 * sc);
+    const outerR = Math.round(70  * sc);
+    const stroke = Math.round(19  * sc);
+    const innerR = outerR - stroke;
+
+    cv.fillCircle(cx, cy, innerR - 1, 255, 255, 255, 25);
+    cv.strokeCircle(cx, cy, outerR, stroke, 255, 255, 255);
+
+    const ang = Math.PI * 0.25;
+    const hx1 = cx + Math.cos(ang) * (outerR - stroke * 0.45);
+    const hy1 = cy + Math.sin(ang) * (outerR - stroke * 0.45);
+    const hLen = Math.round(60 * sc);
+    cv.strokeLine(hx1, hy1, hx1 + Math.cos(ang) * hLen, hy1 + Math.sin(ang) * hLen,
+                  stroke, 255, 255, 255);
+
+    cv.fillCircle(
+      cx - Math.round(28 * sc),
+      cy - Math.round(28 * sc),
+      Math.round(10 * sc),
+      255, 255, 255, 40
+    );
+  }
 
   return cv.getRGBA();
 }
 
 /* ── ICO entry builders ──────────────────────────────────────────────────── */
 function bmpEntry(rgba, size) {
-  /* RGBA → BGRA conversion */
   const bgra = Buffer.alloc(size * size * 4);
   for (let i = 0; i < size * size; i++) {
     bgra[i*4]   = rgba[i*4 + 2];
@@ -187,27 +258,24 @@ function bmpEntry(rgba, size) {
   const buf           = Buffer.alloc(total, 0);
   let o = 0;
 
-  buf.writeUInt32LE(40,           o); o += 4;  // biSize
-  buf.writeInt32LE (size,         o); o += 4;  // biWidth
-  buf.writeInt32LE (size * 2,     o); o += 4;  // biHeight × 2 (ICO convention)
-  buf.writeUInt16LE(1,            o); o += 2;  // biPlanes
-  buf.writeUInt16LE(32,           o); o += 2;  // biBitCount
-  buf.writeUInt32LE(0,            o); o += 4;  // biCompression (BI_RGB)
-  buf.writeUInt32LE(0,            o); o += 4;  // biSizeImage (0 OK for BI_RGB)
-  o += 16;                                      // skip XPels, YPels, ClrUsed, ClrImportant
+  buf.writeUInt32LE(40,       o); o += 4;
+  buf.writeInt32LE (size,     o); o += 4;
+  buf.writeInt32LE (size * 2, o); o += 4;
+  buf.writeUInt16LE(1,        o); o += 2;
+  buf.writeUInt16LE(32,       o); o += 2;
+  buf.writeUInt32LE(0,        o); o += 4;
+  buf.writeUInt32LE(0,        o); o += 4;
+  o += 16;
 
-  /* XOR (colour) data — BMP is stored bottom-to-top */
   for (let row = size - 1; row >= 0; row--) {
     bgra.copy(buf, o, row * size * 4, (row + 1) * size * 4);
     o += size * 4;
   }
-  /* AND mask pre-zeroed (alpha channel handles transparency for 32-bit ICOs) */
 
   return { buf, size: total };
 }
 
 function pngEntry(rgba, size) {
-  /* Filter bytes (0 = None) prepended to each row */
   const rowLen = 1 + size * 4;
   const raw    = Buffer.alloc(size * rowLen);
   for (let y = 0; y < size; y++) {
@@ -223,7 +291,7 @@ function pngEntry(rgba, size) {
 
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
-  ihdr[8] = 8; ihdr[9] = 6; /* 32-bit RGBA */
+  ihdr[8] = 8; ihdr[9] = 6;
 
   const data = Buffer.concat([
     Buffer.from([137,80,78,71,13,10,26,10]),
@@ -248,19 +316,19 @@ function buildIco(sizes) {
   const ico = Buffer.alloc(offset);
   let p = 0;
 
-  ico.writeUInt16LE(0,            p); p += 2;  // reserved
-  ico.writeUInt16LE(1,            p); p += 2;  // type = icon
+  ico.writeUInt16LE(0,            p); p += 2;
+  ico.writeUInt16LE(1,            p); p += 2;
   ico.writeUInt16LE(sizes.length, p); p += 2;
 
   sizes.forEach((sz, i) => {
-    ico.writeUInt8(sz === 256 ? 0 : sz, p++);  // width  (0 → 256)
-    ico.writeUInt8(sz === 256 ? 0 : sz, p++);  // height (0 → 256)
-    ico.writeUInt8(0, p++);                     // colorCount
-    ico.writeUInt8(0, p++);                     // reserved
-    ico.writeUInt16LE(1,              p); p += 2;  // planes
-    ico.writeUInt16LE(32,             p); p += 2;  // bitCount
-    ico.writeUInt32LE(entries[i].size,p); p += 4;  // bytesInRes
-    ico.writeUInt32LE(offsets[i],     p); p += 4;  // imageOffset
+    ico.writeUInt8(sz === 256 ? 0 : sz, p++);
+    ico.writeUInt8(sz === 256 ? 0 : sz, p++);
+    ico.writeUInt8(0, p++);
+    ico.writeUInt8(0, p++);
+    ico.writeUInt16LE(1,              p); p += 2;
+    ico.writeUInt16LE(32,             p); p += 2;
+    ico.writeUInt32LE(entries[i].size,p); p += 4;
+    ico.writeUInt32LE(offsets[i],     p); p += 4;
   });
 
   entries.forEach(e => { e.buf.copy(ico, p); p += e.size; });
@@ -273,5 +341,6 @@ fs.writeFileSync(outPath, buildIco([16, 32, 48, 256]));
 
 const kb = (fs.statSync(outPath).size / 1024).toFixed(1);
 console.log(`✓ Created ${path.relative(process.cwd(), outPath)}  (${kb} KB)`);
-console.log('  Sizes : 16×16, 32×32, 48×48 (BMP) · 256×256 (PNG)');
-console.log('  Colors: #1e3a8a → #3b82f6 gradient · white magnifying glass\n');
+console.log('  Sizes : 16×16, 32×32, 48×48 (magnifying glass · BMP)');
+console.log('  Size  : 256×256 (SQS pixel font · PNG)');
+console.log('  Colors: #060a2e → #1a3a9a background · white S · cyan Q · white S\n');

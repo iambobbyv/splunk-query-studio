@@ -10,8 +10,10 @@ files:
   - main.js
   - preload.js
   - index.html
+  - splash.html
   - package.json
   - renderer/**/*
+  - assets/spl-knowledge.json
 
 # Windows builds: NSIS installer + standalone portable
 win:

@@ -287,25 +287,82 @@
 
   </main>
 
-  <!-- ===== ASIDE: History & Presets ===== -->
+  <!-- ===== ASIDE: History / AI Advisor ===== -->
   <aside class="history-panel">
 
-    <div class="aside-header">
-      <div class="aside-title">
+    <!-- Tab bar -->
+    <div class="aside-tabs">
+      <button class="aside-tab active" data-aside-tab="history">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l-2 2"/></svg>
-        Recent Queries
-      </div>
-      <button class="aside-clear-btn" id="btn-clear-history">Clear</button>
+        History
+      </button>
+      <button class="aside-tab" data-aside-tab="ai">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s2-4 6-4 6 4 6 4"/><circle cx="8" cy="5" r="2.5"/><path d="M13 2l1 1-1 1M14 3h-2"/></svg>
+        AI Advisor
+        <span class="ai-tab-badge" id="ai-tab-badge" style="display:none">!</span>
+      </button>
     </div>
-    <div id="history-list"></div>
 
-    <div class="aside-section">
-      <div class="aside-section-title">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6 11,9 12,13 8,10.5 4,13 5,9 2,6 6,6"/></svg>
-        Saved Presets
+    <!-- History tab content -->
+    <div class="aside-tab-panel" id="aside-panel-history">
+      <div class="aside-header">
+        <div class="aside-title">
+          Recent Queries
+        </div>
+        <button class="aside-clear-btn" id="btn-clear-history">Clear</button>
       </div>
-      <div id="preset-list"></div>
+      <div id="history-list"></div>
+
+      <div class="aside-section">
+        <div class="aside-section-title">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6 11,9 12,13 8,10.5 4,13 5,9 2,6 6,6"/></svg>
+          Saved Presets
+        </div>
+        <div id="preset-list"></div>
+      </div>
     </div>
+
+    <!-- AI Advisor tab content -->
+    <div class="aside-tab-panel hidden" id="aside-panel-ai">
+
+      <!-- Status bar -->
+      <div class="ai-status-bar" id="ai-status-bar">
+        <span class="ai-status-dot" id="ai-status-dot"></span>
+        <span id="ai-status-text">Checking for local AI…</span>
+      </div>
+
+      <!-- Chat messages -->
+      <div class="ai-chat-messages" id="ai-chat-messages">
+        <div class="ai-welcome">
+          <div class="ai-welcome-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          </div>
+          <div class="ai-welcome-text">
+            <strong>SPL Advisor</strong>
+            <p>Generate a query in Step 4 to see instant optimization tips. You can also ask anything about SPL below.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="ai-input-area">
+        <textarea class="ai-input" id="ai-input" rows="2"
+          placeholder="Ask about SPL… (e.g. 'how do I count unique users?')"
+          spellcheck="false"></textarea>
+        <button class="ai-send-btn" id="ai-send-btn" title="Send (Enter)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2L2 7l5 2 2 5 5-12z"/></svg>
+        </button>
+      </div>
+
+      <!-- Quick prompts -->
+      <div class="ai-quick-prompts">
+        <button class="ai-quick" data-prompt="How do I optimize this query for better performance?">Optimize query</button>
+        <button class="ai-quick" data-prompt="Explain each command in this SPL query">Explain SPL</button>
+        <button class="ai-quick" data-prompt="Show me a template for detecting brute force login attempts">Brute force template</button>
+        <button class="ai-quick" data-prompt="What are the most common SPL mistakes to avoid?">Common mistakes</button>
+      </div>
+
+    </div><!-- /aside-panel-ai -->
 
   </aside>
 

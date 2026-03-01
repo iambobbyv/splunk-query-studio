@@ -7,6 +7,10 @@ import { appendHistory, getHistory, clearHistory, savePreset, getPresets, delete
 import { buildSPL, computeMetrics } from './query-engine.js';
 import { highlight } from './highlighter.js';
 import { icons, showToast, qs, qsa, escapeHtml } from './ui.js';
+import {
+  loadKnowledge, checkOllama, askOllama,
+  analyzeQuery, getAutoSuggestions, searchKnowledge
+} from './ai-assistant.js';
 
 /* ============================================================
    STATE
@@ -84,7 +88,7 @@ function goToStep(n) {
     renderFieldFilters();
     updatePreview();
   }
-  if (n === 4) renderResult();
+  if (n === 4) { renderResult(); aiAnalyzeCurrentQuery(); }
 
   // Scroll main to top
   qs('main')?.scrollTo(0, 0);
@@ -702,6 +706,248 @@ function initModals() {
 }
 
 /* ============================================================
+   AI ADVISOR
+   ============================================================ */
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function initAsideTabs() {
+  qsa('[data-aside-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      qsa('[data-aside-tab]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.asideTab;
+      qsa('.aside-tab-panel').forEach(p => p.classList.add('hidden'));
+      qs(`#aside-panel-${tab}`)?.classList.remove('hidden');
+    });
+  });
+}
+
+// ── Ollama status ──────────────────────────────────────────────────────────
+async function updateAIStatus() {
+  const dot  = qs('#ai-status-dot');
+  const text = qs('#ai-status-text');
+  if (!dot || !text) return;
+
+  const { available, model } = await checkOllama();
+  if (available) {
+    dot.className  = 'ai-status-dot online';
+    text.textContent = `Ollama · ${model} · ready`;
+  } else {
+    dot.className  = 'ai-status-dot offline';
+    text.textContent = 'Knowledge base mode (Ollama not detected)';
+  }
+}
+
+// ── Render suggestion cards ────────────────────────────────────────────────
+function renderAISuggestions(suggestions) {
+  const container = qs('#ai-chat-messages');
+  if (!container) return;
+
+  // Remove existing suggestion cards (not welcome, not user/assistant messages)
+  qsa('.ai-suggestion', container).forEach(el => el.remove());
+
+  // Prepend new cards after the welcome block
+  const welcome = container.querySelector('.ai-welcome');
+  for (const s of suggestions) {
+    const card = document.createElement('div');
+    card.className = `ai-suggestion ${s.type}`;
+
+    let html = `<div class="ai-suggestion-title">${escapeHtml(s.title)}</div>`;
+    html += `<div class="ai-suggestion-body">${escapeHtml(s.body)}</div>`;
+    if (s.fix) {
+      html += `<div class="ai-suggestion-spl" title="Click to copy">${escapeHtml(s.fix)}</div>`;
+    }
+    if (s.spl) {
+      html += `<div class="ai-suggestion-spl" title="Click to copy">${escapeHtml(s.spl)}</div>`;
+    }
+    card.innerHTML = html;
+
+    // Click-to-copy on SPL snippets inside cards
+    card.querySelectorAll('.ai-suggestion-spl').forEach(el => {
+      el.addEventListener('click', () => {
+        const text = el.textContent;
+        if (window.api?.copyToClipboard) {
+          window.api.copyToClipboard(text).then(() => showToast('SPL copied!'));
+        }
+      });
+    });
+
+    container.insertBefore(card, welcome ? welcome.nextSibling : container.firstChild);
+  }
+
+  // Show badge on AI tab if there are warnings/danger findings
+  const hasBad = suggestions.some(s => s.type === 'danger' || s.type === 'warning');
+  const badge  = qs('#ai-tab-badge');
+  if (badge) badge.style.display = hasBad ? '' : 'none';
+}
+
+// ── Auto-analyse when entering Step 4 ─────────────────────────────────────
+async function aiAnalyzeCurrentQuery() {
+  const spl = state.currentSPL || '';
+  if (!spl) return;
+  const prof = currentProfile();
+  const suggestions = await getAutoSuggestions(spl, {
+    category:     state.category,
+    techKey:      state.techKey,
+    queryType:    state.queryType,
+    customFields: state.customFields,
+  });
+  renderAISuggestions(suggestions);
+}
+
+// ── Chat message rendering ─────────────────────────────────────────────────
+function appendChatMessage(role, text) {
+  const container = qs('#ai-chat-messages');
+  if (!container) return;
+
+  const msg = document.createElement('div');
+  msg.className = `ai-message ${role}`;
+
+  const roleLabel = role === 'user' ? 'You' : 'SPL Advisor';
+
+  // Convert ```spl ... ``` blocks to <pre> elements
+  const bodyHtml = escapeHtml(text)
+    .replace(/```(?:spl)?\n?([\s\S]*?)```/g, (_, code) =>
+      `<pre title="Click to copy">${code}</pre>`
+    );
+
+  msg.innerHTML = `<div class="ai-message-role">${roleLabel}</div>
+    <div class="ai-message-body">${bodyHtml}</div>`;
+
+  // Click-to-copy on SPL pre blocks
+  msg.querySelectorAll('pre').forEach(pre => {
+    pre.addEventListener('click', () => {
+      if (window.api?.copyToClipboard) {
+        window.api.copyToClipboard(pre.textContent).then(() => showToast('SPL copied!'));
+      }
+    });
+  });
+
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTypingIndicator() {
+  const container = qs('#ai-chat-messages');
+  if (!container) return null;
+  const el = document.createElement('div');
+  el.className = 'ai-typing';
+  el.id = 'ai-typing';
+  el.innerHTML = `<div class="ai-typing-dots"><span></span><span></span><span></span></div> Thinking…`;
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
+  return el;
+}
+
+// ── Send message ──────────────────────────────────────────────────────────
+async function sendAIMessage(userText) {
+  if (!userText.trim()) return;
+
+  const input = qs('#ai-input');
+  if (input) input.value = '';
+
+  // Switch to AI tab if not already
+  const aiTabBtn = qs('[data-aside-tab="ai"]');
+  if (aiTabBtn && !aiTabBtn.classList.contains('active')) aiTabBtn.click();
+
+  appendChatMessage('user', userText);
+  const typingEl = showTypingIndicator();
+
+  const context = state.currentSPL
+    ? `Current SPL:\n${state.currentSPL}\n\nPlatform: ${state.techKey} (${state.category})`
+    : '';
+
+  try {
+    // Try Ollama first
+    const { available } = await checkOllama();
+    let reply;
+
+    if (available) {
+      reply = await askOllama(userText, context);
+    } else {
+      // Static knowledge base response
+      reply = await staticKBResponse(userText);
+    }
+
+    typingEl?.remove();
+    appendChatMessage('assistant', reply);
+  } catch (err) {
+    typingEl?.remove();
+    const fallback = await staticKBResponse(userText);
+    appendChatMessage('assistant', fallback);
+  }
+}
+
+// ── Static knowledge base response ────────────────────────────────────────
+async function staticKBResponse(query) {
+  const results = await searchKnowledge(query);
+
+  if (results.length === 0) {
+    return `I couldn't find a direct match in my SPL knowledge base. Try asking about specific commands like "stats", "eval", "timechart", or ask for optimization tips on your current query.`;
+  }
+
+  let reply = '';
+  for (const r of results.slice(0, 3)) {
+    if (r.kind === 'command') {
+      const c = r.data;
+      reply += `**${c.name}** (${c.category})\n`;
+      reply += `${c.description}\n`;
+      reply += `Syntax: \`${c.syntax}\`\n`;
+      if (c.examples?.length) {
+        reply += `Examples:\n\`\`\`spl\n${c.examples.slice(0, 2).join('\n')}\n\`\`\`\n`;
+      }
+      if (c.tips?.length) reply += `Tip: ${c.tips[0]}\n`;
+      reply += '\n';
+    } else if (r.kind === 'template') {
+      const t = r.data;
+      reply += `**Template: ${t.name}**\n${t.description}\n\`\`\`spl\n${t.spl}\n\`\`\`\n\n`;
+    } else if (r.kind === 'error') {
+      const e = r.data;
+      reply += `**Error: ${e.error}**\nCause: ${e.cause}\nFix: ${e.fix}\n\n`;
+    }
+  }
+
+  return reply.trim() || 'No specific results found. Try a different search term.';
+}
+
+// ── Init AI panel ─────────────────────────────────────────────────────────
+function initAIPanel() {
+  loadKnowledge(); // pre-load in background
+  updateAIStatus();
+
+  // Send button
+  qs('#ai-send-btn')?.addEventListener('click', () => {
+    const val = qs('#ai-input')?.value.trim();
+    if (val) sendAIMessage(val);
+  });
+
+  // Enter key in textarea (Shift+Enter = newline)
+  qs('#ai-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const val = e.target.value.trim();
+      if (val) sendAIMessage(val);
+    }
+  });
+
+  // Quick prompt chips
+  qsa('.ai-quick').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const prompt = btn.dataset.prompt;
+      if (prompt) sendAIMessage(prompt);
+    });
+  });
+
+  // Click-to-copy on pre blocks (delegated)
+  qs('#ai-chat-messages')?.addEventListener('click', e => {
+    const pre = e.target.closest('pre');
+    if (pre && window.api?.copyToClipboard) {
+      window.api.copyToClipboard(pre.textContent).then(() => showToast('SPL copied!'));
+    }
+  });
+}
+
+/* ============================================================
    INIT
    ============================================================ */
 
@@ -718,6 +964,8 @@ function init() {
     // Aside
     renderHistory();
     renderPresets();
+    initAsideTabs();
+    initAIPanel();
 
     /* ---- Modals & header menu ---- */
     initModals();
