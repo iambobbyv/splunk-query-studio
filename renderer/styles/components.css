@@ -1500,3 +1500,214 @@ kbd {
   transition: border-color 150ms, color 150ms;
 }
 .ai-quick:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+/* ============================================================
+   MOBILE COMPONENT OVERRIDES (≤768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Minimum touch target heights */
+  .btn { min-height: 40px; }
+  .wizard-nav .btn { min-height: 44px; }
+  .category-item { min-height: 44px; }
+
+  /* Tech selector chips: taller touch targets */
+  .tech-option {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Results: tighten padding */
+  .results-header { padding: var(--space-3) var(--space-4); }
+  .spl-editor     { padding: var(--space-4); }
+
+  .optimization-metrics {
+    padding: var(--space-4);
+    grid-template-columns: 1fr;
+  }
+
+  /* SPL output: tighter on mobile */
+  #spl-output {
+    font-size: 11px;
+    max-height: 220px;
+  }
+
+  /* Action buttons: 2-column grid on mobile */
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .action-grid .btn {
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* Wizard nav: stretch across full width */
+  .wizard-nav {
+    padding-top: var(--space-3);
+  }
+
+  /* Panel title slightly smaller on mobile */
+  .panel-title { font-size: 16px; }
+
+  /* Wizard stepper padding */
+  .wizard-stepper { padding: var(--space-3) var(--space-3); }
+
+  /* Builder grid: single column on mobile */
+  .builder-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Input cards: reduce padding on mobile */
+  .input-card {
+    padding: var(--space-4) var(--space-4);
+    padding-top: calc(var(--space-4) + 3px);
+  }
+
+  /* SPL preview bar: smaller font */
+  .spl-preview-code { font-size: 11px; }
+
+  /* Aside drag handle visual cue */
+  .history-panel::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--border-subtle);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+
+  /* ────────────────────────────────────────────────
+     FULL-SCREEN SLIDE PANELS (Option C)
+     Each wizard panel becomes a full-screen slide
+     ──────────────────────────────────────────────── */
+
+  /* Panels: absolute fill, default off-screen right */
+  .wizard-panel {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    transform: translateX(105%);
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Override the JS .hidden class — panels must remain rendered for slide */
+  .wizard-panel.hidden {
+    display: flex;
+  }
+
+  /* Active panel: center stage */
+  .wizard-panel.slide-active {
+    transform: translateX(0);
+  }
+
+  /* Previously visited panel: off-screen left */
+  .wizard-panel.slide-left {
+    transform: translateX(-105%);
+  }
+
+  /* Enable transitions only after initial render (prevents flash on load) */
+  #wizard-slides.slides-ready .wizard-panel {
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ────────────────────────────────────────────────
+     MOBILE DOT INDICATOR STYLES
+     ──────────────────────────────────────────────── */
+
+  .mobile-step-dots {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mobile-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-subtle);
+    transition: width 0.25s ease, border-radius 0.25s ease, background 0.25s ease, opacity 0.25s ease;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  /* Active dot: pill shape */
+  .mobile-dot.active {
+    width: 22px;
+    border-radius: 4px;
+    background: var(--accent-blue);
+  }
+
+  /* Completed dot: filled, dimmer */
+  .mobile-dot.done {
+    background: var(--accent-blue);
+    opacity: 0.35;
+  }
+
+  .mobile-step-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* ────────────────────────────────────────────────
+     CATEGORY CARD GRID — 2×2 compact on mobile
+     ──────────────────────────────────────────────── */
+
+  .category-card-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .category-card {
+    padding: var(--space-3);
+    gap: var(--space-2);
+    min-height: 0;
+  }
+
+  .card-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .card-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .card-title {
+    font-size: 13px;
+  }
+
+  .card-desc {
+    font-size: 11px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  /* Wizard nav: safe-area padding at bottom */
+  .wizard-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    flex-shrink: 0;
+  }
+}

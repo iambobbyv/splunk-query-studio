@@ -4,6 +4,11 @@ const path = require('path');
 const SPLASH_DURATION = 10_000; // 10 seconds
 const DEV = !app.isPackaged;    // true when running via `npm start`
 
+// Icon paths
+const ICON_PNG  = path.join(__dirname, 'assets', 'icon-1024.png');
+const ICON_ICO  = path.join(__dirname, 'assets', 'icon.ico');
+const APP_ICON  = process.platform === 'win32' ? ICON_ICO : ICON_PNG;
+
 /* ── Splash window ──────────────────────────────────────────────────────── */
 function createSplash() {
   const splash = new BrowserWindow({
@@ -13,6 +18,7 @@ function createSplash() {
     resizable: false,
     center: true,
     backgroundColor: '#020617',
+    icon: APP_ICON,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -36,6 +42,7 @@ function createMainWindow() {
     height: 900,
     show: false, // revealed after splash
     backgroundColor: '#020617',
+    icon: APP_ICON,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -69,6 +76,11 @@ ipcMain.handle('shell:open',      (_, url)  => shell.openExternal(url));
 
 /* ── App lifecycle ──────────────────────────────────────────────────────── */
 app.whenReady().then(() => {
+  // Override Dock icon in dev mode (packaged builds use the electron-builder icon config)
+  if (DEV && process.platform === 'darwin') {
+    app.dock.setIcon(ICON_PNG);
+  }
+
   const splash = createSplash();
   const win    = createMainWindow();
 

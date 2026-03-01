@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Splunk Query Studio</title>
   <link rel="stylesheet" href="renderer/styles/variables.css" />
   <link rel="stylesheet" href="renderer/styles/layout.css" />
@@ -14,9 +14,14 @@
 
   <!-- ===== HEADER ===== -->
   <header>
-    <div class="logo">
-      <div class="logo-icon">SQS</div>
-      Splunk Query Studio
+    <div class="header-start">
+      <button class="mobile-menu-btn" id="btn-mobile-menu" aria-label="Toggle categories" title="Categories">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg>
+      </button>
+      <div class="logo">
+        <div class="logo-icon">SQS</div>
+        <span class="logo-text">Splunk Query Studio</span>
+      </div>
     </div>
     <div class="header-actions">
       <button class="btn btn-ghost" id="btn-save-preset" title="Save current query as preset" disabled>
@@ -24,6 +29,10 @@
       </button>
       <button class="btn btn-primary" id="btn-copy" title="Copy SPL to clipboard (Ctrl+Shift+C)" disabled>
         Copy SPL
+      </button>
+      <!-- Mobile: History/AI panel button (hidden on desktop) -->
+      <button class="btn btn-ghost mobile-history-btn" id="btn-mobile-aside" aria-label="History &amp; AI Advisor" title="History &amp; AI Advisor">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l-2 2"/></svg>
       </button>
       <!-- Help / Info menu -->
       <div class="header-menu-wrapper">
@@ -75,6 +84,17 @@
   <!-- ===== MAIN — Wizard ===== -->
   <main>
 
+    <!-- Mobile step dots (hidden on desktop) -->
+    <div class="mobile-step-indicator" id="mobile-step-indicator">
+      <div class="mobile-step-dots">
+        <span class="mobile-dot active" data-step="1"></span>
+        <span class="mobile-dot" data-step="2"></span>
+        <span class="mobile-dot" data-step="3"></span>
+        <span class="mobile-dot" data-step="4"></span>
+      </div>
+      <div class="mobile-step-label" id="mobile-step-label">Category</div>
+    </div>
+
     <!-- Step progress indicator -->
     <div class="wizard-stepper" id="wizard-stepper">
       <button class="wizard-step-item" data-step="1">
@@ -109,6 +129,9 @@
         </div>
       </button>
     </div>
+
+    <!-- Slide wrapper: display:contents on desktop, slide container on mobile -->
+    <div id="wizard-slides">
 
     <!-- ── Step 1: Category ── -->
     <div class="wizard-panel" id="panel-step-1">
@@ -272,6 +295,8 @@
 
     </div><!-- /panel-step-4 -->
 
+    </div><!-- /wizard-slides -->
+
     <!-- Wizard navigation (hidden on step 1 — clicking category cards advances) -->
     <div class="wizard-nav" id="wizard-nav">
       <button class="btn btn-secondary" id="btn-back">
@@ -367,6 +392,9 @@
   </aside>
 
 </div><!-- /app-frame -->
+
+<!-- Mobile backdrop (shared by sidebar + aside drawers) -->
+<div class="mobile-backdrop" id="mobile-backdrop"></div>
 
 <div id="toast-container"></div>
 

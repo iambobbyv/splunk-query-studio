@@ -71,12 +71,23 @@ function goToStep(n) {
   state.step = n;
   if (n > state.maxReached) state.maxReached = n;
 
-  // Show/hide panels
+  // Mobile: CSS slide classes; Desktop: hidden toggle
+  const isMobile = window.innerWidth <= 768;
   for (let i = 1; i <= 4; i++) {
     const panel = qs(`#panel-step-${i}`);
-    if (panel) panel.classList.toggle('hidden', i !== n);
+    if (!panel) continue;
+    if (isMobile) {
+      panel.classList.remove('hidden', 'slide-active', 'slide-left');
+      if (i === n)      panel.classList.add('slide-active');
+      else if (i < n)  panel.classList.add('slide-left');
+      // panels with i > n get no class → stay off-screen right (translateX(105%))
+    } else {
+      panel.classList.remove('slide-active', 'slide-left');
+      panel.classList.toggle('hidden', i !== n);
+    }
   }
 
+  updateMobileStepIndicator(n);
   updateStepper();
   updateNav();
 
@@ -90,8 +101,21 @@ function goToStep(n) {
   }
   if (n === 4) { renderResult(); aiAnalyzeCurrentQuery(); }
 
-  // Scroll main to top
-  qs('main')?.scrollTo(0, 0);
+  // On desktop scroll main to top; on mobile each panel scrolls itself
+  if (!isMobile) qs('main')?.scrollTo(0, 0);
+  else qs('.wizard-panel.slide-active')?.scrollTo(0, 0);
+}
+
+function updateMobileStepIndicator(n) {
+  const stepNames = ['Category', 'Platform', 'Parameters', 'Query'];
+  const label = qs('#mobile-step-label');
+  if (label) label.textContent = stepNames[n - 1] ?? '';
+  qsa('.mobile-dot').forEach(dot => {
+    const s = Number(dot.dataset.step);
+    dot.classList.remove('active', 'done');
+    if (s === n)      dot.classList.add('active');
+    else if (s < n)  dot.classList.add('done');
+  });
 }
 
 function updateStepper() {
@@ -706,6 +730,84 @@ function initModals() {
 }
 
 /* ============================================================
+   MOBILE NAVIGATION — Sidebar drawer + History bottom sheet
+   ============================================================ */
+
+function closeMobileSidebar() {
+  document.body.classList.remove('sidebar-open');
+}
+
+function closeMobileAside() {
+  document.body.classList.remove('aside-open');
+}
+
+function closeMobileDrawers() {
+  document.body.classList.remove('sidebar-open', 'aside-open');
+}
+
+function initMobileNav() {
+  const menuBtn  = qs('#btn-mobile-menu');
+  const asideBtn = qs('#btn-mobile-aside');
+  const backdrop = qs('#mobile-backdrop');
+
+  // Hamburger → toggle sidebar drawer
+  menuBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    closeMobileAside();
+    document.body.classList.toggle('sidebar-open');
+  });
+
+  // FAB → toggle history/AI aside bottom sheet
+  asideBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    closeMobileSidebar();
+    document.body.classList.toggle('aside-open');
+  });
+
+  // Backdrop click → close all drawers
+  backdrop?.addEventListener('click', () => closeMobileDrawers());
+
+  // Category card or sidebar item click → close sidebar drawer
+  document.addEventListener('click', e => {
+    if (e.target.closest('.category-card') || e.target.closest('.category-item')) {
+      setTimeout(() => closeMobileSidebar(), 200);
+    }
+  });
+
+  // Escape → close mobile drawers (before modal escape handler)
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeMobileDrawers();
+  });
+
+  // Resize → clean up body classes + reinit panel display mode
+  let _lastMobile = window.innerWidth <= 768;
+  window.addEventListener('resize', () => {
+    const nowMobile = window.innerWidth <= 768;
+    if (!nowMobile) closeMobileDrawers();
+
+    // Only reinit panels when crossing the breakpoint boundary
+    if (nowMobile !== _lastMobile) {
+      _lastMobile = nowMobile;
+      for (let i = 1; i <= 4; i++) {
+        const panel = qs(`#panel-step-${i}`);
+        if (!panel) continue;
+        if (nowMobile) {
+          panel.classList.remove('hidden', 'slide-active', 'slide-left');
+          if (i === state.step)     panel.classList.add('slide-active');
+          else if (i < state.step) panel.classList.add('slide-left');
+        } else {
+          panel.classList.remove('slide-active', 'slide-left');
+          panel.classList.toggle('hidden', i !== state.step);
+        }
+      }
+    }
+  });
+
+  // Enable slide transitions after first paint (prevents flash on load)
+  setTimeout(() => qs('#wizard-slides')?.classList.add('slides-ready'), 50);
+}
+
+/* ============================================================
    AI ADVISOR
    ============================================================ */
 
@@ -964,9 +1066,8 @@ function init() {
     renderCategoryCards();
     renderSidebar();
 
-    // Set initial stepper state
-    updateStepper();
-    updateNav();
+    // Set initial wizard state (also initializes mobile slide classes)
+    goToStep(state.step);
 
     // Aside
     renderHistory();
@@ -976,6 +1077,9 @@ function init() {
 
     /* ---- Modals & header menu ---- */
     initModals();
+
+    /* ---- Mobile navigation ---- */
+    initMobileNav();
 
     /* ---- Wizard navigation buttons ---- */
     qs('#btn-back')?.addEventListener('click', () => goToStep(state.step - 1));
