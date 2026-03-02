@@ -1,0 +1,1977 @@
+{
+  "version": "1.0",
+  "categories": [
+    {
+      "id": "soc",
+      "label": "SOC / Security"
+    },
+    {
+      "id": "itops",
+      "label": "IT Operations"
+    },
+    {
+      "id": "financial",
+      "label": "Financial / FinTech"
+    },
+    {
+      "id": "data",
+      "label": "Data Engineering"
+    },
+    {
+      "id": "healthcare",
+      "label": "Healthcare"
+    },
+    {
+      "id": "cloud",
+      "label": "Cloud / DevOps"
+    },
+    {
+      "id": "network",
+      "label": "Network"
+    }
+  ],
+  "queries": [
+    {
+      "id": "soc-001",
+      "title": "Brute Force Login Detection",
+      "category": "soc",
+      "subcategory": "Authentication",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "authentication",
+        "brute-force",
+        "windows",
+        "linux",
+        "Active Directory"
+      ],
+      "description": "Detects repeated failed login attempts from the same source IP within a 5-minute window. Effective against automated credential stuffing and brute-force campaigns. Threshold of 10 failures is tunable.",
+      "spl": "index=security (sourcetype=\"WinEventLog:Security\" EventCode=4625\n  OR sourcetype=linux_secure \"Failed password\")\n| bin _time span=5m\n| stats count as failed_attempts by _time, src_ip, user, host\n| where failed_attempts > 10\n| sort -failed_attempts\n| table _time, src_ip, user, host, failed_attempts",
+      "fields": [
+        "_time",
+        "src_ip",
+        "user",
+        "host",
+        "failed_attempts"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 08:32:00",
+          "src_ip": "203.0.113.42",
+          "user": "administrator",
+          "host": "DC01",
+          "failed_attempts": "247"
+        },
+        {
+          "_time": "2024-01-15 08:35:00",
+          "src_ip": "198.51.100.73",
+          "user": "admin",
+          "host": "WEBSVR01",
+          "failed_attempts": "89"
+        },
+        {
+          "_time": "2024-01-15 08:40:00",
+          "src_ip": "192.0.2.156",
+          "user": "svc-backup",
+          "host": "FILESVR02",
+          "failed_attempts": "34"
+        },
+        {
+          "_time": "2024-01-15 08:41:00",
+          "src_ip": "10.10.0.99",
+          "user": "jsmith",
+          "host": "LAPTOP-14",
+          "failed_attempts": "12"
+        }
+      ]
+    },
+    {
+      "id": "soc-002",
+      "title": "Account Lockout Storm Analysis",
+      "category": "soc",
+      "subcategory": "Authentication",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "account-lockout",
+        "Active Directory",
+        "windows",
+        "4740"
+      ],
+      "description": "Identifies accounts locked out across the environment with source machine attribution. Distinguishes targeted lockouts from broad spray attacks by correlating source workstations.",
+      "spl": "index=security sourcetype=\"WinEventLog:Security\" EventCode=4740\n| stats count, values(dest) as locked_on, last(_time) as last_seen\n    by user, src\n| sort -count\n| eval last_seen=strftime(last_seen, \"%Y-%m-%d %H:%M:%S\")\n| table user, src, count, locked_on, last_seen",
+      "fields": [
+        "user",
+        "src",
+        "count",
+        "locked_on",
+        "last_seen"
+      ],
+      "exampleResults": [
+        {
+          "user": "jdoe",
+          "src": "LAPTOP-MKTG04",
+          "count": "8",
+          "locked_on": "DC01, DC02",
+          "last_seen": "2024-01-15 09:14:22"
+        },
+        {
+          "user": "svc-api",
+          "src": "SRV-APP01",
+          "count": "3",
+          "locked_on": "DC01",
+          "last_seen": "2024-01-15 09:10:05"
+        },
+        {
+          "user": "bsmith",
+          "src": "KIOSK-LOBBY",
+          "count": "2",
+          "locked_on": "DC02",
+          "last_seen": "2024-01-15 08:58:11"
+        }
+      ]
+    },
+    {
+      "id": "soc-003",
+      "title": "PowerShell Encoded Command Detection",
+      "category": "soc",
+      "subcategory": "Defense Evasion",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "powershell",
+        "encoded-command",
+        "defense-evasion",
+        "4104",
+        "AMSI"
+      ],
+      "description": "Catches PowerShell script blocks containing Base64 encoding flags or encoded payloads — a common defense evasion technique used by malware loaders, Cobalt Strike, and living-off-the-land attacks.",
+      "spl": "index=endpoint sourcetype=\"WinEventLog:Microsoft-Windows-PowerShell/Operational\"\n    (EventCode=4103 OR EventCode=4104)\n| search ScriptBlockText IN (\"*-EncodedCommand*\",\"*-enc *\",\"*-e *\",\n    \"*frombase64string*\",\"*[Convert]::FromBase64*\")\n| eval encoded=if(match(lower(ScriptBlockText),\"-e[nc]\"),\"Flag\",\"Base64\")\n| stats count by host, user, encoded, ScriptBlockText\n| sort -count",
+      "fields": [
+        "host",
+        "user",
+        "encoded",
+        "count",
+        "ScriptBlockText"
+      ],
+      "exampleResults": [
+        {
+          "host": "DESKTOP-A4X",
+          "user": "SYSTEM",
+          "encoded": "Flag",
+          "count": "4",
+          "ScriptBlockText": "powershell.exe -enc JABjAGwAaQBlAG4AdA..."
+        },
+        {
+          "host": "LAPTOP-DEV07",
+          "user": "developer",
+          "encoded": "Base64",
+          "count": "2",
+          "ScriptBlockText": "[Convert]::FromBase64String('dwBpAG4A...')"
+        },
+        {
+          "host": "SRV-WEB02",
+          "user": "IIS_IUSRS",
+          "encoded": "Flag",
+          "count": "1",
+          "ScriptBlockText": "powershell -e SQBFAFgA..."
+        }
+      ]
+    },
+    {
+      "id": "soc-004",
+      "title": "Kerberoasting Attack Detection",
+      "category": "soc",
+      "subcategory": "Credential Access",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "kerberos",
+        "kerberoasting",
+        "service-account",
+        "4769",
+        "credential-access"
+      ],
+      "description": "Identifies Kerberos TGS ticket requests using RC4-HMAC encryption (type 0x17) for service accounts — the hallmark of Kerberoasting. Attackers request these tickets offline to crack service account passwords.",
+      "spl": "index=security sourcetype=\"WinEventLog:Security\" EventCode=4769\n| where Ticket_Encryption_Type=\"0x17\"\n    AND Account_Name!=\"*$\"\n    AND Service_Name!=\"krbtgt\"\n| stats count, dc(Service_Name) as unique_svcs\n    by Account_Name, Client_Address\n| where count > 3\n| sort -count",
+      "fields": [
+        "Account_Name",
+        "Client_Address",
+        "count",
+        "unique_svcs"
+      ],
+      "exampleResults": [
+        {
+          "Account_Name": "jsmith@CORP.LOCAL",
+          "Client_Address": "10.10.5.44",
+          "count": "14",
+          "unique_svcs": "7"
+        },
+        {
+          "Account_Name": "hacker@CORP.LOCAL",
+          "Client_Address": "192.168.100.5",
+          "count": "6",
+          "unique_svcs": "3"
+        },
+        {
+          "Account_Name": "pentester@CORP.LOCAL",
+          "Client_Address": "10.0.0.200",
+          "count": "3",
+          "unique_svcs": "3"
+        }
+      ]
+    },
+    {
+      "id": "soc-005",
+      "title": "DNS Data Exfiltration Detection",
+      "category": "soc",
+      "subcategory": "Exfiltration",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "dns",
+        "exfiltration",
+        "data-theft",
+        "network",
+        "C2"
+      ],
+      "description": "Detects DNS tunneling by identifying unusually long query names and high volumes of unique queries to the same domain — classic indicators of C2 communication or data exfiltration over DNS.",
+      "spl": "index=network sourcetype=\"stream:dns\"\n| eval query_length=len(query)\n| where query_length > 50\n| stats count, avg(query_length) as avg_len,\n    dc(query) as unique_q, values(query) as sample_q\n    by src_ip, dest_ip\n| where count > 100 AND avg_len > 60\n| sort -count",
+      "fields": [
+        "src_ip",
+        "dest_ip",
+        "count",
+        "avg_len",
+        "unique_q"
+      ],
+      "exampleResults": [
+        {
+          "src_ip": "10.0.1.55",
+          "dest_ip": "8.8.8.8",
+          "count": "4812",
+          "avg_len": "78.3",
+          "unique_q": "4510"
+        },
+        {
+          "src_ip": "172.16.5.22",
+          "dest_ip": "1.1.1.1",
+          "count": "1923",
+          "avg_len": "65.1",
+          "unique_q": "1800"
+        },
+        {
+          "src_ip": "192.168.10.8",
+          "dest_ip": "208.67.222.222",
+          "count": "312",
+          "avg_len": "71.9",
+          "unique_q": "298"
+        }
+      ]
+    },
+    {
+      "id": "soc-006",
+      "title": "Ransomware File Extension Monitor",
+      "category": "soc",
+      "subcategory": "Impact",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "ransomware",
+        "file-encryption",
+        "endpoint",
+        "4663",
+        "impact"
+      ],
+      "description": "Watches file system audit events for creation of files with known ransomware extensions. Early detection allows containment before encryption spreads across the network.",
+      "spl": "index=endpoint sourcetype=\"WinEventLog:Security\" EventCode=4663\n| eval extension=lower(mvindex(split(Object_Name,\".\"),-1))\n| search extension IN (\"locky\",\"crypto\",\"cerber\",\"zepto\",\"crypt\",\n    \"enc\",\"locked\",\"ransom\",\"wnry\",\"wncry\",\"ryuk\",\"darkside\")\n| stats count, values(Object_Name) as files,\n    first(_time) as first_seen by host, user, extension\n| sort -count",
+      "fields": [
+        "host",
+        "user",
+        "extension",
+        "count",
+        "first_seen"
+      ],
+      "exampleResults": [
+        {
+          "host": "ACCTG-PC-03",
+          "user": "mwilson",
+          "extension": "wncry",
+          "count": "847",
+          "first_seen": "2024-01-15 03:12:44"
+        },
+        {
+          "host": "SRV-FILE01",
+          "user": "NETWORK SERVICE",
+          "extension": "ransom",
+          "count": "214",
+          "first_seen": "2024-01-15 03:14:01"
+        },
+        {
+          "host": "EXEC-LAPTOP01",
+          "user": "ceo",
+          "extension": "enc",
+          "count": "93",
+          "first_seen": "2024-01-15 03:18:22"
+        }
+      ]
+    },
+    {
+      "id": "soc-007",
+      "title": "Windows Event Log Clearing",
+      "category": "soc",
+      "subcategory": "Defense Evasion",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "event-log",
+        "1102",
+        "1100",
+        "anti-forensics",
+        "defense-evasion"
+      ],
+      "description": "Detects when Windows Security or System event logs are cleared — a common attacker anti-forensics step performed post-compromise to remove evidence of their activity.",
+      "spl": "index=security sourcetype=\"WinEventLog:Security\"\n    (EventCode=1102 OR EventCode=1100)\n| eval action=case(EventCode=1102,\"Audit Log Cleared\",\n    EventCode=1100,\"Event Log Service Stopped\",true(),\"Unknown\")\n| stats count by _time, host, user, action\n| sort -_time",
+      "fields": [
+        "_time",
+        "host",
+        "user",
+        "action",
+        "count"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 02:44:10",
+          "host": "DC02",
+          "user": "Administrator",
+          "action": "Audit Log Cleared",
+          "count": "1"
+        },
+        {
+          "_time": "2024-01-15 02:44:52",
+          "host": "SRV-APP01",
+          "user": "NT AUTHORITYSYSTEM",
+          "action": "Audit Log Cleared",
+          "count": "1"
+        },
+        {
+          "_time": "2024-01-15 02:47:03",
+          "host": "LAPTOP-C12",
+          "user": "localsvc",
+          "action": "Event Log Service Stopped",
+          "count": "1"
+        }
+      ]
+    },
+    {
+      "id": "soc-008",
+      "title": "BITS Job Persistence Detection",
+      "category": "soc",
+      "subcategory": "Persistence",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "BITS",
+        "bitsadmin",
+        "persistence",
+        "LOLBin",
+        "lateral-movement"
+      ],
+      "description": "HIDDEN GEM: Background Intelligent Transfer Service (BITS) jobs survive reboots and can download/execute malware long after the initial compromise. Most teams overlook this Windows-native persistence mechanism entirely.",
+      "spl": "index=endpoint\n    (sourcetype=\"WinEventLog:Microsoft-Windows-Bits-Client/Operational\"\n     OR (sourcetype=sysmon EventCode=1\n         process_name=\"bitsadmin.exe\"))\n| search CommandLine IN (\"*/transfer*\",\"*/create*\",\"*/addfile*\")\n    OR DisplayName IN (\"*update*\",\"*background*\",\"*transfer*\")\n| stats count, values(DisplayName) as job_names,\n    values(RemoteURL) as remote_urls by host, user, _time\n| sort -_time",
+      "fields": [
+        "_time",
+        "host",
+        "user",
+        "job_names",
+        "remote_urls",
+        "count"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 01:22:11",
+          "host": "LAPTOP-FIN02",
+          "user": "SYSTEM",
+          "job_names": "WindowsUpdate2",
+          "remote_urls": "http://evil-c2.example.com/payload.exe",
+          "count": "3"
+        },
+        {
+          "_time": "2024-01-15 01:30:44",
+          "host": "SRV-DB01",
+          "user": "Administrator",
+          "job_names": "LegitBackup",
+          "remote_urls": "http://185.44.82.11/bd.ps1",
+          "count": "1"
+        }
+      ]
+    },
+    {
+      "id": "soc-009",
+      "title": "Token Impersonation via OpenProcess",
+      "category": "soc",
+      "subcategory": "Privilege Escalation",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "token-impersonation",
+        "privilege-escalation",
+        "sysmon",
+        "Mimikatz",
+        "lateral-movement"
+      ],
+      "description": "HIDDEN GEM: Detects full-access process handle requests (0x1F1FFF) from Sysmon Event 10 — the signature of token theft tools like Incognito, Mimikatz token::elevate, and custom impersonation shellcode.",
+      "spl": "index=endpoint sourcetype=sysmon EventCode=10\n| where GrantedAccess IN (\"0x1F1FFF\",\"0x1fffff\",\"0x1410\")\n    AND SourceImage!=TargetImage\n| eval is_lsass=if(match(lower(TargetImage),\"lsass\"),\"YES\",\"no\")\n| stats count, values(TargetImage) as targets,\n    values(SourceImage) as sources, max(is_lsass) as lsass_targeted\n    by host, user\n| where count > 3\n| sort -count",
+      "fields": [
+        "host",
+        "user",
+        "count",
+        "lsass_targeted",
+        "sources",
+        "targets"
+      ],
+      "exampleResults": [
+        {
+          "host": "DC01",
+          "user": "SYSTEM",
+          "count": "28",
+          "lsass_targeted": "YES",
+          "sources": "C:WindowsTempsvc.exe",
+          "targets": "C:WindowsSystem32lsass.exe"
+        },
+        {
+          "host": "SRV-APP02",
+          "user": "appuser",
+          "count": "7",
+          "lsass_targeted": "no",
+          "sources": "C:Tempagent.exe",
+          "targets": "C:Windowsexplorer.exe"
+        }
+      ]
+    },
+    {
+      "id": "soc-010",
+      "title": "Lateral Movement — NTLM Pass-the-Hash",
+      "category": "soc",
+      "subcategory": "Lateral Movement",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "pass-the-hash",
+        "NTLM",
+        "lateral-movement",
+        "4624",
+        "credential-access"
+      ],
+      "description": "Identifies type 3 network logons using NTLM authentication without Kerberos — the signature of pass-the-hash attacks where attackers reuse captured NTLM hashes without knowing plaintext passwords.",
+      "spl": "index=security sourcetype=\"WinEventLog:Security\" EventCode=4624\n| where Logon_Type=3\n    AND Authentication_Package=\"NTLM\"\n    AND Account_Name!=\"ANONYMOUS LOGON\"\n    AND NOT Account_Name LIKE \"%$\"\n| stats count, dc(Workstation_Name) as src_hosts\n    by Account_Name, IpAddress\n| where src_hosts > 3\n| sort -count",
+      "fields": [
+        "Account_Name",
+        "IpAddress",
+        "count",
+        "src_hosts"
+      ],
+      "exampleResults": [
+        {
+          "Account_Name": "Domain Admin",
+          "IpAddress": "10.10.5.100",
+          "count": "47",
+          "src_hosts": "12"
+        },
+        {
+          "Account_Name": "svc-deploy",
+          "IpAddress": "172.16.0.55",
+          "count": "23",
+          "src_hosts": "8"
+        },
+        {
+          "Account_Name": "backup-svc",
+          "IpAddress": "192.168.1.200",
+          "count": "14",
+          "src_hosts": "5"
+        }
+      ]
+    },
+    {
+      "id": "soc-011",
+      "title": "Netsh Port Proxy Tunnel",
+      "category": "soc",
+      "subcategory": "Command & Control",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "netsh",
+        "portproxy",
+        "tunnel",
+        "C2",
+        "lateral-movement",
+        "LOLBin"
+      ],
+      "description": "HIDDEN GEM: netsh portproxy is a Windows-native technique that forwards traffic between ports, enabling attackers to bypass firewall rules and create persistent C2 tunnels. Rarely monitored by most teams.",
+      "spl": "index=endpoint sourcetype=sysmon EventCode=1\n| where process_name=\"netsh.exe\"\n    AND (CommandLine LIKE \"%portproxy%\"\n         OR CommandLine LIKE \"%v4tov4%\"\n         OR CommandLine LIKE \"%v4tov6%\")\n| table _time, host, user, CommandLine, parent_process_name\n| sort -_time",
+      "fields": [
+        "_time",
+        "host",
+        "user",
+        "CommandLine",
+        "parent_process_name"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-14 23:01:55",
+          "host": "DMZ-SRV01",
+          "user": "Administrator",
+          "CommandLine": "netsh interface portproxy add v4tov4 listenport=4444 connectaddress=10.0.0.5 connectport=443",
+          "parent_process_name": "cmd.exe"
+        },
+        {
+          "_time": "2024-01-14 23:05:10",
+          "host": "WEBSVR03",
+          "user": "SYSTEM",
+          "CommandLine": "netsh interface portproxy add v4tov4 listenport=80 connectaddress=192.168.1.100 connectport=8080",
+          "parent_process_name": "powershell.exe"
+        }
+      ]
+    },
+    {
+      "id": "soc-012",
+      "title": "Scheduled Task Creation for Persistence",
+      "category": "soc",
+      "subcategory": "Persistence",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "scheduled-task",
+        "persistence",
+        "4698",
+        "4702",
+        "endpoint"
+      ],
+      "description": "Monitors creation and modification of Windows scheduled tasks — a top persistence technique used by ransomware, APTs, and commodity malware to survive reboots.",
+      "spl": "index=security sourcetype=\"WinEventLog:Security\"\n    (EventCode=4698 OR EventCode=4702)\n| eval action=if(EventCode=4698,\"Created\",\"Modified\")\n| rex field=Message \"Task Name:s+(?P<task_name>[^\n]+)\"\n| rex field=Message \"Task Content:s+(?P<task_content>[^\n]+)\"\n| stats count, values(task_name) as tasks, first(action) as action\n    by host, user\n| sort -count",
+      "fields": [
+        "host",
+        "user",
+        "action",
+        "tasks",
+        "count"
+      ],
+      "exampleResults": [
+        {
+          "host": "SRV-EXEC01",
+          "user": "Administrator",
+          "action": "Created",
+          "tasks": "MicrosoftWindowsBackupTask",
+          "count": "3"
+        },
+        {
+          "host": "DESKTOP-MKTG",
+          "user": "jdoe",
+          "action": "Created",
+          "tasks": "UpdateHelper",
+          "count": "2"
+        },
+        {
+          "host": "DC01",
+          "user": "SYSTEM",
+          "action": "Modified",
+          "tasks": "WindowsSynchronizeTime",
+          "count": "1"
+        }
+      ]
+    },
+    {
+      "id": "itops-001",
+      "title": "System Resource Utilization by Host",
+      "category": "itops",
+      "subcategory": "Performance",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "cpu",
+        "memory",
+        "performance",
+        "perfmon",
+        "monitoring"
+      ],
+      "description": "Aggregates CPU and memory utilization across all monitored hosts, flagging those exceeding warning or critical thresholds. Essential for capacity planning and incident response.",
+      "spl": "index=perfmon (sourcetype=\"Perfmon:CPU\" OR sourcetype=\"Perfmon:Memory\")\n| eval resource=case(sourcetype=\"Perfmon:CPU\",\"CPU %\",\n    sourcetype=\"Perfmon:Memory\",\"Memory %\",true(),\"Other\")\n| stats avg(Value) as avg_pct, max(Value) as peak_pct\n    by host, resource\n| eval status=case(avg_pct>90,\"Critical\",avg_pct>75,\"Warning\",true(),\"OK\")\n| sort -avg_pct",
+      "fields": [
+        "host",
+        "resource",
+        "avg_pct",
+        "peak_pct",
+        "status"
+      ],
+      "exampleResults": [
+        {
+          "host": "SRV-DB01",
+          "resource": "CPU %",
+          "avg_pct": "94.2",
+          "peak_pct": "99.8",
+          "status": "Critical"
+        },
+        {
+          "host": "SRV-APP03",
+          "resource": "Memory %",
+          "avg_pct": "87.1",
+          "peak_pct": "98.4",
+          "status": "Critical"
+        },
+        {
+          "host": "WEBSVR01",
+          "resource": "CPU %",
+          "avg_pct": "76.3",
+          "peak_pct": "89.0",
+          "status": "Warning"
+        },
+        {
+          "host": "FILESVR02",
+          "resource": "Memory %",
+          "avg_pct": "52.4",
+          "peak_pct": "71.2",
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "id": "itops-002",
+      "title": "Windows Service Failure Monitor",
+      "category": "itops",
+      "subcategory": "Availability",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "windows",
+        "service",
+        "7034",
+        "7036",
+        "availability",
+        "system"
+      ],
+      "description": "Tracks Windows services that have crashed, changed state unexpectedly, or failed to start. Grouped by host and service so repeat offenders surface immediately.",
+      "spl": "index=wineventlog sourcetype=\"WinEventLog:System\"\n    (EventCode=7034 OR EventCode=7036 OR EventCode=7043)\n| eval action=case(EventCode=7034,\"Service Crashed\",\n    EventCode=7036,\"State Changed\",\n    EventCode=7043,\"Failed to Start\",true(),\"Unknown\")\n| rex field=Message \"The (?P<svc_name>.+?) service\"\n| stats count, values(action) as actions by host, svc_name\n| sort -count",
+      "fields": [
+        "host",
+        "svc_name",
+        "count",
+        "actions"
+      ],
+      "exampleResults": [
+        {
+          "host": "SRV-APP02",
+          "svc_name": "Tomcat9",
+          "count": "14",
+          "actions": "Service Crashed, State Changed"
+        },
+        {
+          "host": "SRV-DB01",
+          "svc_name": "MSSQLSERVER",
+          "count": "6",
+          "actions": "Failed to Start, State Changed"
+        },
+        {
+          "host": "WEBSVR01",
+          "svc_name": "W3SVC",
+          "count": "3",
+          "actions": "State Changed"
+        },
+        {
+          "host": "DC01",
+          "svc_name": "DNS Client",
+          "count": "2",
+          "actions": "State Changed"
+        }
+      ]
+    },
+    {
+      "id": "itops-003",
+      "title": "Log Volume Anomaly Detection",
+      "category": "itops",
+      "subcategory": "Anomaly Detection",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "log-volume",
+        "anomaly",
+        "z-score",
+        "monitoring",
+        "baseline"
+      ],
+      "description": "Uses statistical z-score analysis to detect sudden spikes or drops in log ingestion volume by index and sourcetype. Spikes often indicate an incident; drops indicate source failures.",
+      "spl": "index=* earliest=-2d@d latest=now\n| bin _time span=1h\n| stats count as vol by _time, index, sourcetype\n| eventstats avg(vol) as avg_vol, stdev(vol) as sd_vol\n    by index, sourcetype\n| eval z=(vol-avg_vol)/sd_vol\n| where abs(z) > 3\n| sort -abs(z)\n| eval direction=if(z>0,\"Spike\",\"Drop\")",
+      "fields": [
+        "_time",
+        "index",
+        "sourcetype",
+        "vol",
+        "avg_vol",
+        "z",
+        "direction"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 02:00:00",
+          "index": "security",
+          "sourcetype": "WinEventLog:Security",
+          "vol": "48220",
+          "avg_vol": "4100",
+          "z": "5.84",
+          "direction": "Spike"
+        },
+        {
+          "_time": "2024-01-15 04:00:00",
+          "index": "network",
+          "sourcetype": "cisco:asa",
+          "vol": "0",
+          "avg_vol": "12400",
+          "z": "-3.20",
+          "direction": "Drop"
+        },
+        {
+          "_time": "2024-01-15 06:00:00",
+          "index": "application",
+          "sourcetype": "log4j",
+          "vol": "98110",
+          "avg_vol": "8200",
+          "z": "4.31",
+          "direction": "Spike"
+        }
+      ]
+    },
+    {
+      "id": "itops-004",
+      "title": "Application Error Rate by Service",
+      "category": "itops",
+      "subcategory": "Application Health",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "application",
+        "error-rate",
+        "log4j",
+        "monitoring",
+        "SLO"
+      ],
+      "description": "Calculates error-to-total-log ratio per service in 15-minute buckets. Services breaching 5% error rate are surfaced for investigation, enabling SLO tracking and alerting.",
+      "spl": "index=application\n| eval is_err=if(log_level IN (\"ERROR\",\"FATAL\",\"CRITICAL\"),1,0)\n| bin _time span=15m\n| stats sum(is_err) as errors, count as total\n    by _time, host, service_name\n| eval error_rate=round(errors/total*100,2)\n| where error_rate > 5\n| sort -error_rate",
+      "fields": [
+        "_time",
+        "service_name",
+        "host",
+        "errors",
+        "total",
+        "error_rate"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 09:00:00",
+          "service_name": "payment-api",
+          "host": "SRV-PAY01",
+          "errors": "312",
+          "total": "890",
+          "error_rate": "35.06"
+        },
+        {
+          "_time": "2024-01-15 09:00:00",
+          "service_name": "auth-service",
+          "host": "SRV-AUTH02",
+          "errors": "88",
+          "total": "1240",
+          "error_rate": "7.10"
+        },
+        {
+          "_time": "2024-01-15 09:15:00",
+          "service_name": "inventory-svc",
+          "host": "SRV-INV03",
+          "errors": "44",
+          "total": "820",
+          "error_rate": "5.37"
+        }
+      ]
+    },
+    {
+      "id": "itops-005",
+      "title": "IIS Request Latency Analysis (p95)",
+      "category": "itops",
+      "subcategory": "Web Performance",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "IIS",
+        "latency",
+        "p95",
+        "web",
+        "performance",
+        "http"
+      ],
+      "description": "Surfaces the slowest IIS endpoints by 95th-percentile response time. The p95 metric identifies tail latency that averages hide — crucial for diagnosing user-facing performance degradation.",
+      "spl": "index=iis sourcetype=iis\n| where time_taken > 500\n| stats avg(time_taken) as avg_ms, perc95(time_taken) as p95_ms,\n    max(time_taken) as max_ms, count\n    by cs_uri_stem, s_sitename\n| sort -p95_ms\n| table cs_uri_stem, s_sitename, avg_ms, p95_ms, max_ms, count\n| head 20",
+      "fields": [
+        "cs_uri_stem",
+        "s_sitename",
+        "avg_ms",
+        "p95_ms",
+        "max_ms",
+        "count"
+      ],
+      "exampleResults": [
+        {
+          "cs_uri_stem": "/api/reports/generate",
+          "s_sitename": "IntranetSite",
+          "avg_ms": "2840",
+          "p95_ms": "8920",
+          "max_ms": "31450",
+          "count": "4421"
+        },
+        {
+          "cs_uri_stem": "/api/search",
+          "s_sitename": "CustomerPortal",
+          "avg_ms": "1120",
+          "p95_ms": "4100",
+          "max_ms": "12300",
+          "count": "18892"
+        },
+        {
+          "cs_uri_stem": "/checkout/process",
+          "s_sitename": "Storefront",
+          "avg_ms": "890",
+          "p95_ms": "3400",
+          "max_ms": "9800",
+          "count": "7231"
+        }
+      ]
+    },
+    {
+      "id": "itops-006",
+      "title": "JVM Thread Pool Exhaustion Pattern",
+      "category": "itops",
+      "subcategory": "JVM / Java",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "JVM",
+        "java",
+        "thread-pool",
+        "RejectedExecutionException",
+        "performance"
+      ],
+      "description": "HIDDEN GEM: Identifies JVM thread pool saturation before it causes full outages. RejectedExecutionException in logs is the earliest signal of pool exhaustion — usually missed until the app becomes completely unresponsive.",
+      "spl": "index=application (sourcetype=\"log4j\" OR sourcetype=\"log4net\"\n    OR sourcetype=java)\n| search \"ThreadPoolExecutor\" OR \"RejectedExecutionException\"\n    OR \"thread pool exhausted\" OR \"Unable to process request\"\n| eval pool_type=case(match(_raw,\"http\"),\"HTTP Worker\",\n    match(_raw,\"db\"),\"DB Connection\",\n    match(_raw,\"async\"),\"Async Task\",true(),\"Other\")\n| stats count, latest(_raw) as sample_log\n    by host, service, pool_type\n| sort -count",
+      "fields": [
+        "host",
+        "service",
+        "pool_type",
+        "count",
+        "sample_log"
+      ],
+      "exampleResults": [
+        {
+          "host": "SRV-APP01",
+          "service": "order-service",
+          "pool_type": "HTTP Worker",
+          "count": "847",
+          "sample_log": "java.util.concurrent.RejectedExecutionException: Task rejected from ThreadPoolExecutor@1f (pool=200, queue=500 full)"
+        },
+        {
+          "host": "SRV-APP02",
+          "service": "inventory-svc",
+          "pool_type": "DB Connection",
+          "count": "223",
+          "sample_log": "Unable to acquire JDBC Connection; nested exception: thread pool exhausted"
+        },
+        {
+          "host": "SRV-APP03",
+          "service": "notification-svc",
+          "pool_type": "Async Task",
+          "count": "88",
+          "sample_log": "ThreadPoolExecutor rejected task: AsyncNotificationJob@bc4f"
+        }
+      ]
+    },
+    {
+      "id": "fin-001",
+      "title": "Transaction Volume Spike Detection",
+      "category": "financial",
+      "subcategory": "Fraud Detection",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "fraud",
+        "transactions",
+        "anomaly",
+        "real-time",
+        "payment"
+      ],
+      "description": "Detects sudden spikes in transaction volumes per merchant category using a rolling 5-minute baseline comparison. Volume spikes of 3× or more indicate potential flash fraud or system abuse.",
+      "spl": "index=financial sourcetype=transactions\n| bin _time span=5m\n| stats count as txn_count, sum(amount) as total_amount\n    by _time, merchant_category\n| eventstats avg(txn_count) as baseline by merchant_category\n| eval spike_ratio=round(txn_count/baseline,2)\n| where spike_ratio > 3\n| sort -spike_ratio",
+      "fields": [
+        "_time",
+        "merchant_category",
+        "txn_count",
+        "total_amount",
+        "baseline",
+        "spike_ratio"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 09:10:00",
+          "merchant_category": "Gift Cards",
+          "txn_count": "8840",
+          "total_amount": "441000",
+          "baseline": "310",
+          "spike_ratio": "28.52"
+        },
+        {
+          "_time": "2024-01-15 09:10:00",
+          "merchant_category": "Crypto Exchange",
+          "txn_count": "2210",
+          "total_amount": "884000",
+          "baseline": "280",
+          "spike_ratio": "7.89"
+        },
+        {
+          "_time": "2024-01-15 09:15:00",
+          "merchant_category": "Wire Transfer",
+          "txn_count": "440",
+          "total_amount": "2200000",
+          "baseline": "95",
+          "spike_ratio": "4.63"
+        }
+      ]
+    },
+    {
+      "id": "fin-002",
+      "title": "High-Value Wire Transfer Alert",
+      "category": "financial",
+      "subcategory": "Wire Fraud",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "wire-transfer",
+        "high-value",
+        "AML",
+        "compliance",
+        "fraud"
+      ],
+      "description": "Flags wire transfers exceeding defined thresholds with risk-tier classification. Supports AML compliance by surfacing transactions that may require SAR filing or additional authorization.",
+      "spl": "index=financial sourcetype=wire_transfers\n| where amount > 50000\n| eval risk=case(amount>1000000,\"Critical\",\n    amount>250000,\"High\",true(),\"Medium\")\n| stats count, sum(amount) as total,\n    values(recipient_bank) as banks\n    by sender_id, risk\n| sort -total\n| eval total=\"$\"+tostring(round(total,2),\"commas\")",
+      "fields": [
+        "sender_id",
+        "risk",
+        "count",
+        "total",
+        "banks"
+      ],
+      "exampleResults": [
+        {
+          "sender_id": "ACCT-00441892",
+          "risk": "Critical",
+          "count": "3",
+          "total": ",450,000",
+          "banks": "Cayman National Bank"
+        },
+        {
+          "sender_id": "ACCT-01099234",
+          "risk": "High",
+          "count": "7",
+          "total": ",800,000",
+          "banks": "Deutsche Bank, HSBC"
+        },
+        {
+          "sender_id": "ACCT-00882211",
+          "risk": "Medium",
+          "count": "12",
+          "total": " ,000",
+          "banks": "Wells Fargo, Bank of America"
+        }
+      ]
+    },
+    {
+      "id": "fin-003",
+      "title": "Failed Payment Analysis by Error Code",
+      "category": "financial",
+      "subcategory": "Payment Operations",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "payments",
+        "declined",
+        "error-code",
+        "operations",
+        "PCI"
+      ],
+      "description": "Breaks down payment failures by processor error code with human-readable descriptions. Helps distinguish fraud-related declines (card stolen) from operational issues (expired cards, insufficient funds).",
+      "spl": "index=financial sourcetype=payment_gateway\n| where status IN (\"FAILED\",\"DECLINED\",\"ERROR\")\n| eval reason=case(error_code=\"51\",\"Insufficient Funds\",\n    error_code=\"54\",\"Expired Card\",\n    error_code=\"14\",\"Invalid Card Number\",\n    error_code=\"41\",\"Card Reported Lost\",\n    error_code=\"43\",\"Card Reported Stolen\",\n    true(),\"Other: \"+error_code)\n| stats count, dc(card_last4) as unique_cards\n    by reason, merchant_id\n| sort -count",
+      "fields": [
+        "reason",
+        "merchant_id",
+        "count",
+        "unique_cards"
+      ],
+      "exampleResults": [
+        {
+          "reason": "Insufficient Funds",
+          "merchant_id": "MERCH-4492",
+          "count": "1840",
+          "unique_cards": "1723"
+        },
+        {
+          "reason": "Expired Card",
+          "merchant_id": "MERCH-8821",
+          "count": "892",
+          "unique_cards": "889"
+        },
+        {
+          "reason": "Card Reported Stolen",
+          "merchant_id": "MERCH-1130",
+          "count": "44",
+          "unique_cards": "44"
+        },
+        {
+          "reason": "Invalid Card Number",
+          "merchant_id": "MERCH-3301",
+          "count": "18",
+          "unique_cards": "12"
+        }
+      ]
+    },
+    {
+      "id": "fin-004",
+      "title": "Card Velocity Fraud Detection",
+      "category": "financial",
+      "subcategory": "Fraud Detection",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "velocity",
+        "fraud",
+        "card-testing",
+        "CNP",
+        "fraud-ring"
+      ],
+      "description": "HIDDEN GEM: Card-testing fraud rings make rapid low-value transactions across many merchants to validate stolen cards before large fraud. This velocity check catches multi-signal patterns that single-rule systems miss.",
+      "spl": "index=financial sourcetype=transactions\n| bin _time span=10m\n| stats count as txn_10m,\n    dc(merchant_id) as merchants,\n    sum(amount) as amount_10m\n    by _time, card_hash\n| eval signals=if(txn_10m>5,1,0)\n    +if(merchants>4,1,0)\n    +if(amount_10m>5000,1,0)\n| where signals >= 2\n| sort -signals, -txn_10m",
+      "fields": [
+        "_time",
+        "card_hash",
+        "txn_10m",
+        "merchants",
+        "amount_10m",
+        "signals"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 09:20:00",
+          "card_hash": "a3f9b2...",
+          "txn_10m": "22",
+          "merchants": "18",
+          "amount_10m": ",890",
+          "signals": "3"
+        },
+        {
+          "_time": "2024-01-15 09:20:00",
+          "card_hash": "8c2d71...",
+          "txn_10m": "8",
+          "merchants": "7",
+          "amount_10m": "\u0002,200",
+          "signals": "3"
+        },
+        {
+          "_time": "2024-01-15 09:25:00",
+          "card_hash": "f4a102...",
+          "txn_10m": "6",
+          "merchants": "5",
+          "amount_10m": ",100",
+          "signals": "2"
+        }
+      ]
+    },
+    {
+      "id": "fin-005",
+      "title": "Off-Hours Large Transaction Monitor",
+      "category": "financial",
+      "subcategory": "Insider Threat",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "off-hours",
+        "insider-threat",
+        "AML",
+        "large-transaction",
+        "behavioral"
+      ],
+      "description": "HIDDEN GEM: Large transactions initiated between 10 PM and 7 AM carry significantly higher fraud risk. This time-aware query combines value thresholds with behavioral context that standard payment rules ignore.",
+      "spl": "index=financial sourcetype=transactions\n| eval hour=tonumber(strftime(_time,\"%H\"))\n| eval off_hours=if(hour<7 OR hour>22,1,0)\n| where off_hours=1 AND amount>10000\n| stats count, sum(amount) as total_value,\n    values(merchant_name) as merchants\n    by user_id\n| eval risk=if(total_value>100000,\"High\",\"Medium\")\n| sort -total_value",
+      "fields": [
+        "user_id",
+        "count",
+        "total_value",
+        "risk",
+        "merchants"
+      ],
+      "exampleResults": [
+        {
+          "user_id": "USR-10042",
+          "count": "4",
+          "total_value": "\u00048,000",
+          "risk": "High",
+          "merchants": "Western Union, BitPay, PayPal"
+        },
+        {
+          "user_id": "USR-88231",
+          "count": "2",
+          "total_value": "\u0005,000",
+          "risk": "High",
+          "merchants": "Zelle, Venmo"
+        },
+        {
+          "user_id": "USR-34512",
+          "count": "3",
+          "total_value": "\u0002,500",
+          "risk": "Medium",
+          "merchants": "Amazon, Apple Store"
+        }
+      ]
+    },
+    {
+      "id": "data-001",
+      "title": "ETL Pipeline Failure Monitor",
+      "category": "data",
+      "subcategory": "Pipeline Health",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "ETL",
+        "Airflow",
+        "Spark",
+        "Databricks",
+        "pipeline",
+        "data-quality"
+      ],
+      "description": "Aggregates failures across all ETL orchestration platforms (Airflow, Spark, Databricks) into a single view. Shows the most recently failed pipeline stage and error message for quick triage.",
+      "spl": "index=data_platform sourcetype IN (\"airflow\",\"spark\",\"databricks\")\n| where log_level IN (\"ERROR\",\"CRITICAL\") OR status=\"FAILED\"\n| eval stage=coalesce(task_id,job_name,pipeline_name,\"unknown\")\n| stats count, last(message) as last_error,\n    latest(_time) as last_failure\n    by stage, source\n| sort -last_failure\n| eval last_failure=strftime(last_failure,\"%Y-%m-%d %H:%M\")",
+      "fields": [
+        "stage",
+        "source",
+        "count",
+        "last_failure",
+        "last_error"
+      ],
+      "exampleResults": [
+        {
+          "stage": "transform_customer_events",
+          "source": "Airflow",
+          "count": "14",
+          "last_failure": "2024-01-15 06:45",
+          "last_error": "KeyError: 'customer_id' — schema mismatch in upstream API payload"
+        },
+        {
+          "stage": "load_transactions_warehouse",
+          "source": "Databricks",
+          "count": "8",
+          "last_failure": "2024-01-15 06:30",
+          "last_error": "AnalysisException: Path does not exist: s3://datalake/raw/txn/2024-01-15"
+        },
+        {
+          "stage": "aggregate_daily_revenue",
+          "source": "Spark",
+          "count": "3",
+          "last_failure": "2024-01-15 05:00",
+          "last_error": "java.lang.OutOfMemoryError: GC overhead limit exceeded"
+        }
+      ]
+    },
+    {
+      "id": "data-002",
+      "title": "Kafka Consumer Lag Monitor",
+      "category": "data",
+      "subcategory": "Streaming",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "Kafka",
+        "consumer-lag",
+        "streaming",
+        "real-time",
+        "data-platform"
+      ],
+      "description": "Tracks Kafka consumer group lag across topics and classifies health by threshold buckets. Growing lag indicates consumers are falling behind producers — a leading indicator of processing bottlenecks.",
+      "spl": "index=kafka_metrics sourcetype=kafka_consumer\n| eval health=case(consumer_lag>100000,\"Critical\",\n    consumer_lag>10000,\"High\",\n    consumer_lag>1000,\"Medium\",true(),\"OK\")\n| stats max(consumer_lag) as max_lag,\n    avg(consumer_lag) as avg_lag\n    by consumer_group, topic\n| sort -max_lag\n| table consumer_group, topic, max_lag, avg_lag, health",
+      "fields": [
+        "consumer_group",
+        "topic",
+        "max_lag",
+        "avg_lag",
+        "health"
+      ],
+      "exampleResults": [
+        {
+          "consumer_group": "payment-processor",
+          "topic": "transactions.raw",
+          "max_lag": "847210",
+          "avg_lag": "612000",
+          "health": "Critical"
+        },
+        {
+          "consumer_group": "analytics-engine",
+          "topic": "clickstream.events",
+          "max_lag": "24800",
+          "avg_lag": "18200",
+          "health": "High"
+        },
+        {
+          "consumer_group": "fraud-detector",
+          "topic": "transactions.enriched",
+          "max_lag": "890",
+          "avg_lag": "440",
+          "health": "OK"
+        }
+      ]
+    },
+    {
+      "id": "data-003",
+      "title": "Database Slow Query Identification",
+      "category": "data",
+      "subcategory": "Database Performance",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "database",
+        "slow-query",
+        "MySQL",
+        "PostgreSQL",
+        "performance",
+        "DBA"
+      ],
+      "description": "Surfaces the worst-performing database queries by average and 95th-percentile execution time. Supports MySQL slow log, PostgreSQL log, and Oracle audit formats for multi-database environments.",
+      "spl": "index=database\n    sourcetype IN (\"mysql:slow\",\"postgresql:log\",\"oracle:audit\")\n| where query_time > 1.0\n| eval db=case(sourcetype=\"mysql:slow\",\"MySQL\",\n    sourcetype=\"postgresql:log\",\"PostgreSQL\",true(),\"Oracle\")\n| stats avg(query_time) as avg_s,\n    perc95(query_time) as p95_s,\n    count by db, normalized_query, database_name\n| sort -avg_s\n| head 20",
+      "fields": [
+        "db",
+        "database_name",
+        "avg_s",
+        "p95_s",
+        "count",
+        "normalized_query"
+      ],
+      "exampleResults": [
+        {
+          "db": "PostgreSQL",
+          "database_name": "prod_orders",
+          "avg_s": "12.4",
+          "p95_s": "44.8",
+          "count": "2210",
+          "normalized_query": "SELECT * FROM orders o JOIN customers c ON... WHERE o.status=? GROUP BY..."
+        },
+        {
+          "db": "MySQL",
+          "database_name": "analytics",
+          "avg_s": "8.1",
+          "p95_s": "21.3",
+          "count": "884",
+          "normalized_query": "SELECT DATE(created_at), SUM(revenue) FROM transactions WHERE..."
+        },
+        {
+          "db": "Oracle",
+          "database_name": "finance_dw",
+          "avg_s": "4.7",
+          "p95_s": "9.8",
+          "count": "441",
+          "normalized_query": "SELECT /*+ FULL(t) */ account_id, SUM(balance) FROM ledger t WHERE..."
+        }
+      ]
+    },
+    {
+      "id": "data-004",
+      "title": "API Error Spike Detection",
+      "category": "data",
+      "subcategory": "API Health",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "API",
+        "5xx",
+        "error-rate",
+        "microservices",
+        "SRE"
+      ],
+      "description": "Detects services generating 2× or more 5xx errors compared to their rolling baseline — the standard SRE signal for a service degradation incident requiring immediate response.",
+      "spl": "index=api_gateway (sourcetype=nginx OR sourcetype=kong\n    OR sourcetype=envoy)\n| eval class=if(status>=500,\"5xx\",if(status>=400,\"4xx\",\"2xx\"))\n| bin _time span=5m\n| stats count by _time, service_name, class\n| eventstats avg(count) as baseline by service_name, class\n| eval spike=round(count/baseline,2)\n| where class=\"5xx\" AND spike > 2\n| sort -spike",
+      "fields": [
+        "_time",
+        "service_name",
+        "class",
+        "count",
+        "baseline",
+        "spike"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 09:05:00",
+          "service_name": "checkout-api",
+          "class": "5xx",
+          "count": "1840",
+          "baseline": "42",
+          "spike": "43.81"
+        },
+        {
+          "_time": "2024-01-15 09:05:00",
+          "service_name": "auth-service",
+          "class": "5xx",
+          "count": "220",
+          "baseline": "8",
+          "spike": "27.50"
+        },
+        {
+          "_time": "2024-01-15 09:10:00",
+          "service_name": "inventory-api",
+          "class": "5xx",
+          "count": "88",
+          "baseline": "12",
+          "spike": "7.33"
+        }
+      ]
+    },
+    {
+      "id": "data-005",
+      "title": "Schema Drift Detection in Log Fields",
+      "category": "data",
+      "subcategory": "Data Quality",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "schema-drift",
+        "data-quality",
+        "observability",
+        "field-count",
+        "anomaly"
+      ],
+      "description": "HIDDEN GEM: Detects when log event structure changes unexpectedly — a leading indicator of upstream application changes breaking downstream parsers. Most data teams only discover schema drift after pipelines fail.",
+      "spl": "index=data_platform sourcetype=application_logs\n| eval field_count=mvcount(split(_raw,\",\"))\n| bin _time span=1h\n| stats avg(field_count) as avg_fields,\n    stdev(field_count) as stdev_fields,\n    min(field_count) as min_fields,\n    max(field_count) as max_fields by _time, source\n| eval drift=if(max_fields-min_fields>3,\"DETECTED\",\"ok\")\n| where drift=\"DETECTED\"\n| sort -_time",
+      "fields": [
+        "_time",
+        "source",
+        "min_fields",
+        "avg_fields",
+        "max_fields",
+        "drift"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 08:00:00",
+          "source": "orders-service",
+          "min_fields": "12",
+          "avg_fields": "14.2",
+          "max_fields": "18",
+          "drift": "DETECTED"
+        },
+        {
+          "_time": "2024-01-15 07:00:00",
+          "source": "payment-gateway",
+          "min_fields": "8",
+          "avg_fields": "10.1",
+          "max_fields": "14",
+          "drift": "DETECTED"
+        }
+      ]
+    },
+    {
+      "id": "hc-001",
+      "title": "HIPAA — Patient Record Access Audit",
+      "category": "healthcare",
+      "subcategory": "Compliance",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "HIPAA",
+        "PHI",
+        "EHR",
+        "audit",
+        "compliance",
+        "privacy"
+      ],
+      "description": "Generates a HIPAA-compliant access audit report showing which users accessed patient records, what actions were taken, and how many unique patients were accessed — required for breach risk assessments.",
+      "spl": "index=ehr\n    sourcetype IN (\"epic_audit\",\"cerner_audit\",\"allscripts_audit\")\n| eval access=case(action=\"VIEW\",\"Read\",\n    action IN (\"EDIT\",\"UPDATE\"),\"Modify\",\n    action=\"PRINT\",\"Print/Export\",true(),action)\n| stats count, dc(patient_mrn) as unique_patients,\n    first(_time) as start_time\n    by user, access, workstation\n| sort -unique_patients",
+      "fields": [
+        "user",
+        "access",
+        "workstation",
+        "unique_patients",
+        "count",
+        "start_time"
+      ],
+      "exampleResults": [
+        {
+          "user": "dr.johnson",
+          "access": "Read",
+          "workstation": "CLINIC-WS04",
+          "unique_patients": "842",
+          "count": "2210",
+          "start_time": "2024-01-15 07:00"
+        },
+        {
+          "user": "billing-clerk",
+          "access": "Modify",
+          "workstation": "BILLING-PC01",
+          "unique_patients": "441",
+          "count": "892",
+          "start_time": "2024-01-15 08:15"
+        },
+        {
+          "user": "nurse.kim",
+          "access": "Print/Export",
+          "workstation": "NURSE-STATION3",
+          "unique_patients": "22",
+          "count": "44",
+          "start_time": "2024-01-15 09:00"
+        }
+      ]
+    },
+    {
+      "id": "hc-002",
+      "title": "Unauthorized PHI Access Detection",
+      "category": "healthcare",
+      "subcategory": "Privacy",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "PHI",
+        "unauthorized-access",
+        "HIPAA",
+        "insider-threat",
+        "EHR"
+      ],
+      "description": "Flags access to patient records where no treating relationship exists — the most common HIPAA violation type. Also catches staff accessing their own records, a policy violation in most health systems.",
+      "spl": "index=ehr\n    sourcetype IN (\"epic_audit\",\"cerner_audit\")\n| where treating_relationship=\"N\"\n    OR (accessed_own_record=\"Y\" AND access_type=\"PRINT\")\n| eval risk=case(access_type=\"PRINT\",\"High\",\n    access_type=\"EXPORT\",\"Critical\",true(),\"Medium\")\n| stats count, dc(patient_mrn) as records\n    by user_id, user_name, department, risk\n| sort -records",
+      "fields": [
+        "user_id",
+        "user_name",
+        "department",
+        "risk",
+        "records",
+        "count"
+      ],
+      "exampleResults": [
+        {
+          "user_id": "EMP-04421",
+          "user_name": "Sandra K.",
+          "department": "Billing",
+          "risk": "Critical",
+          "records": "1240",
+          "count": "1840"
+        },
+        {
+          "user_id": "EMP-08812",
+          "user_name": "Tom R.",
+          "department": "Radiology",
+          "risk": "High",
+          "records": "88",
+          "count": "120"
+        },
+        {
+          "user_id": "EMP-01122",
+          "user_name": "Maria L.",
+          "department": "Nursing",
+          "risk": "Medium",
+          "records": "12",
+          "count": "14"
+        }
+      ]
+    },
+    {
+      "id": "hc-003",
+      "title": "Bulk Patient Record Download Alert",
+      "category": "healthcare",
+      "subcategory": "Data Breach Detection",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "bulk-export",
+        "PHI",
+        "data-breach",
+        "HIPAA",
+        "insider-threat"
+      ],
+      "description": "HIDDEN GEM: Most EHR breach investigations begin with individual access — but bulk exports and mass print jobs are the real data theft vectors. This query catches the high-volume exfiltration that record-by-record monitoring misses.",
+      "spl": "index=ehr\n    sourcetype IN (\"epic_audit\",\"cerner_audit\")\n| where action IN (\"BULK_EXPORT\",\"REPORT_RUN\",\"PRINT\")\n    AND record_count > 100\n| stats sum(record_count) as total_records,\n    count as sessions,\n    first(_time) as first_event\n    by user_id, user_name, department\n| where total_records > 500\n| sort -total_records\n| eval risk=if(total_records>5000,\n    \"CRITICAL — Possible Breach\",\"HIGH — Review Required\")",
+      "fields": [
+        "user_id",
+        "user_name",
+        "department",
+        "sessions",
+        "total_records",
+        "risk"
+      ],
+      "exampleResults": [
+        {
+          "user_id": "EMP-22441",
+          "user_name": "Robert F.",
+          "department": "Informatics",
+          "sessions": "4",
+          "total_records": "48200",
+          "risk": "CRITICAL — Possible Breach"
+        },
+        {
+          "user_id": "EMP-05512",
+          "user_name": "Carol T.",
+          "department": "Quality Assurance",
+          "sessions": "8",
+          "total_records": "12100",
+          "risk": "CRITICAL — Possible Breach"
+        },
+        {
+          "user_id": "EMP-19832",
+          "user_name": "David M.",
+          "department": "Nursing",
+          "sessions": "2",
+          "total_records": "840",
+          "risk": "HIGH — Review Required"
+        }
+      ]
+    },
+    {
+      "id": "hc-004",
+      "title": "EHR System Error Rate Monitor",
+      "category": "healthcare",
+      "subcategory": "System Availability",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "EHR",
+        "availability",
+        "error-rate",
+        "Epic",
+        "Cerner",
+        "clinical"
+      ],
+      "description": "Tracks EHR system error rates by module in 30-minute buckets and flags anomalies exceeding 50% above baseline. Clinical system downtime directly impacts patient safety.",
+      "spl": "index=ehr sourcetype=system_logs\n    log_level IN (\"ERROR\",\"CRITICAL\")\n| bin _time span=30m\n| stats count as errors by _time, system_name, error_category\n| eventstats avg(errors) as baseline\n    by system_name, error_category\n| eval anomaly=round((errors-baseline)/baseline*100,1)\n| where anomaly > 50\n| sort -anomaly",
+      "fields": [
+        "_time",
+        "system_name",
+        "error_category",
+        "errors",
+        "baseline",
+        "anomaly"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 08:30:00",
+          "system_name": "Epic Hyperspace",
+          "error_category": "Database Timeout",
+          "errors": "892",
+          "baseline": "48",
+          "anomaly": "1758.3"
+        },
+        {
+          "_time": "2024-01-15 08:30:00",
+          "system_name": "Cerner PowerChart",
+          "error_category": "Auth Service",
+          "errors": "220",
+          "baseline": "12",
+          "anomaly": "1733.3"
+        },
+        {
+          "_time": "2024-01-15 09:00:00",
+          "system_name": "Pharmacy System",
+          "error_category": "Interface HL7",
+          "errors": "88",
+          "baseline": "22",
+          "anomaly": "300.0"
+        }
+      ]
+    },
+    {
+      "id": "cloud-001",
+      "title": "AWS CloudTrail — Root Account Usage",
+      "category": "cloud",
+      "subcategory": "AWS Security",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "AWS",
+        "CloudTrail",
+        "root-account",
+        "IAM",
+        "CIS",
+        "compliance"
+      ],
+      "description": "Fires whenever the AWS root account takes any action other than console login — a CIS benchmark violation that indicates either credential compromise or improper administrative practices.",
+      "spl": "index=aws sourcetype=\"aws:cloudtrail\"\n    userIdentity.type=Root\n| where eventName!=\"ConsoleLogin\"\n| stats count, values(eventName) as actions,\n    values(sourceIPAddress) as src_ips\n    by userIdentity.arn, awsRegion\n| sort -count\n| eval severity=\"CRITICAL — Root Account Active\"",
+      "fields": [
+        "userIdentity.arn",
+        "awsRegion",
+        "count",
+        "actions",
+        "src_ips"
+      ],
+      "exampleResults": [
+        {
+          "userIdentity.arn": "arn:aws:iam::123456789:root",
+          "awsRegion": "us-east-1",
+          "count": "7",
+          "actions": "DeleteBucketPolicy, PutBucketAcl, CreateAccessKey",
+          "src_ips": "203.0.113.55"
+        },
+        {
+          "userIdentity.arn": "arn:aws:iam::987654321:root",
+          "awsRegion": "eu-west-1",
+          "count": "2",
+          "actions": "CreateUser",
+          "src_ips": "198.51.100.12"
+        }
+      ]
+    },
+    {
+      "id": "cloud-002",
+      "title": "Container Crash Loop Detection",
+      "category": "cloud",
+      "subcategory": "Kubernetes",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "Kubernetes",
+        "CrashLoopBackOff",
+        "containers",
+        "k8s",
+        "SRE",
+        "pods"
+      ],
+      "description": "Identifies Kubernetes pods in CrashLoopBackOff with crash frequency counts and last error messages. High crash counts indicate application failures requiring immediate intervention.",
+      "spl": "index=kubernetes\n    (sourcetype=\"kube:events\" OR sourcetype=kubectl:logs)\n| where reason=\"BackOff\"\n    OR message LIKE \"%CrashLoopBackOff%\"\n| stats count, latest(message) as last_msg\n    by namespace, pod_name, container_name\n| where count > 5\n| sort -count\n| eval severity=case(count>50,\"Critical\",\n    count>10,\"Warning\",true(),\"Info\")",
+      "fields": [
+        "namespace",
+        "pod_name",
+        "container_name",
+        "count",
+        "severity",
+        "last_msg"
+      ],
+      "exampleResults": [
+        {
+          "namespace": "production",
+          "pod_name": "payment-api-7f4bc-xk9p2",
+          "container_name": "payment-api",
+          "count": "148",
+          "severity": "Critical",
+          "last_msg": "Back-off restarting failed container: OOMKilled"
+        },
+        {
+          "namespace": "staging",
+          "pod_name": "auth-service-6d8b-n2m4l",
+          "container_name": "auth-service",
+          "count": "22",
+          "severity": "Warning",
+          "last_msg": "Back-off restarting failed container: exit code 1"
+        },
+        {
+          "namespace": "production",
+          "pod_name": "redis-cache-5c9f-q7r3s",
+          "container_name": "redis",
+          "count": "8",
+          "severity": "Warning",
+          "last_msg": "Back-off restarting failed container: permission denied"
+        }
+      ]
+    },
+    {
+      "id": "cloud-003",
+      "title": "AWS IAM Privilege Escalation Detection",
+      "category": "cloud",
+      "subcategory": "AWS Security",
+      "popularity": "high",
+      "gem": false,
+      "tags": [
+        "AWS",
+        "IAM",
+        "privilege-escalation",
+        "CloudTrail",
+        "CIS"
+      ],
+      "description": "Detects IAM actions that could enable privilege escalation: creating users, attaching admin policies, creating access keys, or assuming powerful roles — top attacker techniques post-initial-access in AWS.",
+      "spl": "index=aws sourcetype=\"aws:cloudtrail\"\n| where eventName IN (\"CreateUser\",\"AttachUserPolicy\",\n    \"PutUserPolicy\",\"CreateAccessKey\",\n    \"AssumeRole\",\"AttachRolePolicy\")\n    AND errorCode=\"\"\n| stats count, values(eventName) as actions,\n    values(requestParameters.userName) as targets\n    by userIdentity.userName, sourceIPAddress, awsRegion\n| sort -count",
+      "fields": [
+        "userIdentity.userName",
+        "sourceIPAddress",
+        "awsRegion",
+        "count",
+        "actions",
+        "targets"
+      ],
+      "exampleResults": [
+        {
+          "userIdentity.userName": "ci-deploy-user",
+          "sourceIPAddress": "18.185.0.1",
+          "awsRegion": "us-east-1",
+          "count": "12",
+          "actions": "CreateUser, AttachUserPolicy",
+          "targets": "backdoor-admin, support-bot"
+        },
+        {
+          "userIdentity.userName": "dev-sandbox",
+          "sourceIPAddress": "203.0.113.99",
+          "awsRegion": "us-west-2",
+          "count": "4",
+          "actions": "AssumeRole, CreateAccessKey",
+          "targets": "AdminRole"
+        }
+      ]
+    },
+    {
+      "id": "cloud-004",
+      "title": "Lambda Cold Start Latency Analysis",
+      "category": "cloud",
+      "subcategory": "Serverless",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "AWS",
+        "Lambda",
+        "cold-start",
+        "serverless",
+        "latency",
+        "performance"
+      ],
+      "description": "HIDDEN GEM: Lambda cold starts can add 2–10 seconds to response times, invisible in average metrics. This query extracts cold start durations from CloudWatch logs to identify which functions need Provisioned Concurrency.",
+      "spl": "index=aws sourcetype=aws:cloudwatchlogs\n| rex \"REPORT RequestId.*?Init Duration: (?P<cold_ms>[d.]+)\"\n| where isnotnull(cold_ms)\n| eval cold_ms=tonumber(cold_ms)\n| stats avg(cold_ms) as avg_cold,\n    perc95(cold_ms) as p95_cold,\n    count as invocations\n    by function_name, memory_size\n| sort -avg_cold\n| eval hint=if(avg_cold>2000,\n    \"Use Provisioned Concurrency\",\"Acceptable\")",
+      "fields": [
+        "function_name",
+        "memory_size",
+        "avg_cold",
+        "p95_cold",
+        "invocations",
+        "hint"
+      ],
+      "exampleResults": [
+        {
+          "function_name": "process-payment",
+          "memory_size": "512",
+          "avg_cold": "4820",
+          "p95_cold": "8940",
+          "invocations": "2210",
+          "hint": "Use Provisioned Concurrency"
+        },
+        {
+          "function_name": "send-notification",
+          "memory_size": "256",
+          "avg_cold": "2100",
+          "p95_cold": "3800",
+          "invocations": "8840",
+          "hint": "Use Provisioned Concurrency"
+        },
+        {
+          "function_name": "validate-token",
+          "memory_size": "1024",
+          "avg_cold": "480",
+          "p95_cold": "920",
+          "invocations": "44100",
+          "hint": "Acceptable"
+        }
+      ]
+    },
+    {
+      "id": "net-001",
+      "title": "Top Bandwidth Consumers (NetFlow)",
+      "category": "network",
+      "subcategory": "Traffic Analysis",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "netflow",
+        "bandwidth",
+        "top-talkers",
+        "traffic",
+        "network"
+      ],
+      "description": "Identifies the top bandwidth consumers across the network from NetFlow data. Essential for capacity planning, detecting large file transfers, and spotting data exfiltration by volume.",
+      "spl": "index=network (sourcetype=netflow OR sourcetype=\"palo_alto:traffic\")\n| eval gb_total=round((bytes_in+bytes_out)/1073741824,3)\n| stats sum(gb_total) as total_gb,\n    sum(packets) as total_pkts\n    by src_ip, dest_ip, app\n| sort -total_gb\n| head 20\n| eval total_gb=round(total_gb,2)+\" GB\"",
+      "fields": [
+        "src_ip",
+        "dest_ip",
+        "app",
+        "total_gb",
+        "total_pkts"
+      ],
+      "exampleResults": [
+        {
+          "src_ip": "10.10.5.44",
+          "dest_ip": "52.84.22.100",
+          "app": "SharePoint",
+          "total_gb": "84.2 GB",
+          "total_pkts": "98210000"
+        },
+        {
+          "src_ip": "172.16.0.100",
+          "dest_ip": "185.199.108.53",
+          "app": "unknown",
+          "total_gb": "47.8 GB",
+          "total_pkts": "44100000"
+        },
+        {
+          "src_ip": "192.168.10.5",
+          "dest_ip": "34.120.54.30",
+          "app": "S3",
+          "total_gb": "31.4 GB",
+          "total_pkts": "18800000"
+        },
+        {
+          "src_ip": "10.0.0.88",
+          "dest_ip": "203.0.113.5",
+          "app": "custom-8443",
+          "total_gb": "12.1 GB",
+          "total_pkts": "2210000"
+        }
+      ]
+    },
+    {
+      "id": "net-002",
+      "title": "Network Port Scan Detection",
+      "category": "network",
+      "subcategory": "Reconnaissance",
+      "popularity": "top",
+      "gem": false,
+      "tags": [
+        "port-scan",
+        "nmap",
+        "reconnaissance",
+        "firewall",
+        "IDS"
+      ],
+      "description": "Detects hosts scanning more than 20 unique destination ports within a 1-minute window — the classic signature of automated port scanners like nmap. Classifies intensity as Low, Moderate, or Aggressive.",
+      "spl": "index=network\n    sourcetype IN (\"cisco:asa\",\"palo_alto\",\"netflow\")\n| bin _time span=1m\n| stats dc(dest_port) as unique_ports, count\n    by _time, src_ip, dest_ip\n| where unique_ports > 20\n| sort -unique_ports\n| eval intensity=case(unique_ports>100,\"Aggressive\",\n    unique_ports>50,\"Moderate\",true(),\"Low\")",
+      "fields": [
+        "_time",
+        "src_ip",
+        "dest_ip",
+        "unique_ports",
+        "intensity"
+      ],
+      "exampleResults": [
+        {
+          "_time": "2024-01-15 09:14:00",
+          "src_ip": "10.10.0.99",
+          "dest_ip": "10.0.0.0/24",
+          "unique_ports": "1024",
+          "intensity": "Aggressive"
+        },
+        {
+          "_time": "2024-01-15 09:15:00",
+          "src_ip": "172.16.5.22",
+          "dest_ip": "192.168.1.50",
+          "unique_ports": "67",
+          "intensity": "Moderate"
+        },
+        {
+          "_time": "2024-01-15 09:16:00",
+          "src_ip": "203.0.113.8",
+          "dest_ip": "198.51.100.4",
+          "unique_ports": "24",
+          "intensity": "Low"
+        }
+      ]
+    },
+    {
+      "id": "net-003",
+      "title": "ICMP Tunnel Detection",
+      "category": "network",
+      "subcategory": "Command & Control",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "ICMP",
+        "tunnel",
+        "C2",
+        "data-exfiltration",
+        "covert-channel",
+        "Zeek"
+      ],
+      "description": "HIDDEN GEM: ICMP tunneling tools like iodine, icmptunnel, and ptunnel embed data in ping payloads to bypass firewalls. Standard ICMP payloads are 32–48 bytes; tunneled payloads routinely exceed 200 bytes.",
+      "spl": "index=network (sourcetype=zeek OR sourcetype=suricata)\n| where proto=\"icmp\"\n| eval payload_size=bytes-8\n| where payload_size > 64\n| stats count, avg(payload_size) as avg_payload,\n    sum(bytes) as total_bytes\n    by src_ip, dest_ip\n| where avg_payload > 200 AND count > 100\n| sort -total_bytes\n| eval confidence=if(avg_payload>500 AND count>500,\n    \"High\",\"Medium\")",
+      "fields": [
+        "src_ip",
+        "dest_ip",
+        "count",
+        "avg_payload",
+        "total_bytes",
+        "confidence"
+      ],
+      "exampleResults": [
+        {
+          "src_ip": "10.10.5.88",
+          "dest_ip": "198.51.100.5",
+          "count": "8840",
+          "avg_payload": "892",
+          "total_bytes": "8,120,480",
+          "confidence": "High"
+        },
+        {
+          "src_ip": "172.16.0.44",
+          "dest_ip": "203.0.113.72",
+          "count": "441",
+          "avg_payload": "312",
+          "total_bytes": "148,200",
+          "confidence": "Medium"
+        }
+      ]
+    },
+    {
+      "id": "net-004",
+      "title": "Long-Duration Connection Analysis (Beaconing)",
+      "category": "network",
+      "subcategory": "Command & Control",
+      "popularity": "medium",
+      "gem": true,
+      "tags": [
+        "beaconing",
+        "C2",
+        "long-connection",
+        "Zeek",
+        "lateral-movement",
+        "APT"
+      ],
+      "description": "HIDDEN GEM: APT malware and C2 frameworks maintain persistent connections to command servers for hours or days. Connections over 12 hours with consistent data flow are strong beaconing indicators that traditional perimeter tools miss.",
+      "spl": "index=network\n    (sourcetype=\"zeek:conn\" OR sourcetype=netflow)\n| where duration > 3600\n| eval hours=round(duration/3600,1)\n| stats count, avg(hours) as avg_h,\n    max(hours) as max_h,\n    sum(bytes) as total_bytes\n    by src_ip, dest_ip, dest_port, service\n| where max_h > 12\n| sort -max_h\n| eval concern=if(max_h>24,\n    \"Beaconing Likely\",\"Investigate\")",
+      "fields": [
+        "src_ip",
+        "dest_ip",
+        "dest_port",
+        "service",
+        "max_h",
+        "avg_h",
+        "total_bytes",
+        "concern"
+      ],
+      "exampleResults": [
+        {
+          "src_ip": "192.168.10.55",
+          "dest_ip": "45.33.32.156",
+          "dest_port": "443",
+          "service": "ssl",
+          "max_h": "72.4",
+          "avg_h": "71.8",
+          "total_bytes": "22,400",
+          "concern": "Beaconing Likely"
+        },
+        {
+          "src_ip": "10.0.1.88",
+          "dest_ip": "104.21.8.80",
+          "dest_port": "80",
+          "service": "http",
+          "max_h": "38.1",
+          "avg_h": "36.4",
+          "total_bytes": "4,800",
+          "concern": "Beaconing Likely"
+        },
+        {
+          "src_ip": "172.16.5.100",
+          "dest_ip": "91.108.4.40",
+          "dest_port": "5222",
+          "service": "unknown",
+          "max_h": "14.2",
+          "avg_h": "12.1",
+          "total_bytes": "88,200",
+          "concern": "Investigate"
+        }
+      ]
+    }
+  ]
+}

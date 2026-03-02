@@ -11,6 +11,7 @@ import {
   loadKnowledge, checkOllama, askOllama,
   analyzeQuery, getAutoSuggestions, searchKnowledge
 } from './ai-assistant.js';
+import { loadLibrary, searchLibrary, getQuery as getLibQuery } from './library.js';
 
 /* ============================================================
    STATE
@@ -30,7 +31,17 @@ const state = {
   customFields: {},   // map of fieldName → value string
 
   // Generated
-  currentSPL: ''
+  currentSPL: '',
+
+  // Library
+  lib: {
+    queries:      [],      // full list, loaded lazily
+    filtered:     [],      // current filtered view
+    activeId:     null,    // id of selected query
+    text:         '',
+    category:     'all',
+    popularity:   'all'
+  }
 };
 
 /* ============================================================
@@ -598,6 +609,10 @@ function doReset() {
   if (copyBtn) copyBtn.disabled = true;
   if (saveBtn) saveBtn.disabled = true;
 
+  // Hide library inline results
+  qs('#lib-inline-results')?.classList.add('hidden');
+  state.lib.activeId = null;
+
   renderCategoryCards();
   renderSidebar();
   goToStep(1);
@@ -955,6 +970,252 @@ function initAIPanel() {
 }
 
 /* ============================================================
+   LIBRARY
+   ============================================================ */
+
+const LIB_CAT_LABELS = {
+  soc:        'SOC / Security',
+  itops:      'IT Operations',
+  financial:  'Financial / FinTech',
+  data:       'Data Engineering',
+  healthcare: 'Healthcare',
+  cloud:      'Cloud / DevOps',
+  network:    'Network'
+};
+
+/** Ensure the library JSON is loaded into state.lib.queries */
+async function ensureLibrary() {
+  if (state.lib.queries.length > 0) return;
+  const { queries } = await loadLibrary();
+  state.lib.queries = queries;
+  state.lib.filtered = queries;
+}
+
+/** Re-filter + re-render the query list based on current state.lib filter values */
+function filterLibrary() {
+  state.lib.filtered = searchLibrary(state.lib.queries, {
+    text:       state.lib.text,
+    category:   state.lib.category,
+    popularity: state.lib.popularity
+  });
+  renderLibraryList(state.lib.filtered);
+}
+
+/** Render the query card list in the library sidebar */
+function renderLibraryList(queries) {
+  const list  = qs('#lib-list');
+  const count = qs('#lib-count');
+  if (!list) return;
+
+  if (count) {
+    count.textContent = queries.length === 1
+      ? '1 query'
+      : `${queries.length} queries`;
+  }
+
+  if (queries.length === 0) {
+    list.innerHTML = '<div class="lib-no-results">No queries match your filters</div>';
+    return;
+  }
+
+  list.innerHTML = queries.map(q => {
+    const isActive = q.id === state.lib.activeId;
+    const catLabel = escapeHtml(LIB_CAT_LABELS[q.category] ?? q.category);
+    const gemBadge = q.gem
+      ? `<span class="lib-badge lib-badge-gem">💎 Hidden Gem</span>`
+      : q.popularity === 'top'
+        ? `<span class="lib-badge lib-badge-top">⭐ Top Pick</span>`
+        : '';
+    return `
+      <div class="lib-query-card${isActive ? ' active' : ''}" data-lib-id="${escapeHtml(q.id)}">
+        <div class="lib-card-title">${escapeHtml(q.title)}</div>
+        <div class="lib-card-meta">
+          <span class="lib-badge lib-badge-cat">${catLabel}</span>
+          ${gemBadge}
+        </div>
+      </div>`;
+  }).join('');
+
+  qsa('.lib-query-card', list).forEach(card => {
+    card.addEventListener('click', () => showLibraryQuery(card.dataset.libId));
+  });
+}
+
+/** Show detail view for a selected library query */
+function showLibraryQuery(id) {
+  const query = getLibQuery(state.lib.queries, id);
+  if (!query) return;
+
+  state.lib.activeId = id;
+
+  // Update active card styling
+  qsa('.lib-query-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.libId === id);
+  });
+
+  // Show detail pane
+  const emptyState = qs('#lib-empty-state');
+  const queryView  = qs('#lib-query-view');
+  if (emptyState) emptyState.classList.add('hidden');
+  if (queryView)  queryView.classList.remove('hidden');
+
+  // Badges
+  const badgesEl = qs('#lib-query-badges');
+  if (badgesEl) {
+    const catLabel = LIB_CAT_LABELS[query.category] ?? query.category;
+    let badgesHtml = `<span class="lib-badge lib-badge-cat">${escapeHtml(catLabel)}</span>`;
+    if (query.subcategory) {
+      badgesHtml += `<span class="lib-badge" style="background:rgba(107,114,128,0.15);color:var(--text-secondary)">${escapeHtml(query.subcategory)}</span>`;
+    }
+    if (query.gem) {
+      badgesHtml += `<span class="lib-badge lib-badge-gem">💎 Hidden Gem</span>`;
+    } else if (query.popularity === 'top') {
+      badgesHtml += `<span class="lib-badge lib-badge-top">⭐ Top Pick</span>`;
+    }
+    badgesEl.innerHTML = badgesHtml;
+  }
+
+  // Title + description
+  setText('lib-query-title', query.title ?? '');
+  setText('lib-query-desc', query.description ?? '');
+
+  // SPL with syntax highlighting
+  const splPre = qs('#lib-spl-pre');
+  if (splPre) {
+    splPre.innerHTML = highlight(query.spl ?? '');
+    splPre.dataset.raw = query.spl ?? '';
+  }
+
+  // Example results table
+  const wrap = qs('#lib-results-wrap');
+  const section = qs('#lib-results-section');
+  if (wrap) {
+    const tableHtml = buildResultsTable(query.fields ?? [], query.exampleResults ?? []);
+    wrap.innerHTML = tableHtml;
+    if (section) section.style.display = tableHtml ? '' : 'none';
+  }
+}
+
+/** Build an HTML table from fields array + rows array of objects */
+function buildResultsTable(fields, rows) {
+  if (!fields.length || !rows.length) return '';
+
+  const thead = `<tr>${fields.map(f => `<th>${escapeHtml(f)}</th>`).join('')}</tr>`;
+  const tbody = rows.map(row =>
+    `<tr>${fields.map(f => `<td title="${escapeHtml(String(row[f] ?? ''))}">${escapeHtml(String(row[f] ?? ''))}</td>`).join('')}</tr>`
+  ).join('');
+
+  return `<table class="lib-results-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+
+/** Load selected library query into the wizard editor and close the modal */
+function loadLibraryQuery() {
+  const id    = state.lib.activeId;
+  const query = id ? getLibQuery(state.lib.queries, id) : null;
+  if (!query?.spl) {
+    showToast('Select a query first', 'error');
+    return;
+  }
+
+  // Put SPL into the output display
+  const output = qs('#spl-output');
+  if (output) {
+    output.innerHTML  = highlight(query.spl);
+    output.dataset.raw = query.spl;
+  }
+  state.currentSPL = query.spl;
+
+  // Show inline example results in step 4
+  const inlineSection = qs('#lib-inline-results');
+  const inlineWrap    = qs('#lib-inline-results-wrap');
+  const inlineBadge   = qs('#lib-inline-badge');
+  if (inlineSection && inlineWrap) {
+    const tableHtml = buildResultsTable(query.fields ?? [], query.exampleResults ?? []);
+    if (tableHtml) {
+      inlineWrap.innerHTML = tableHtml;
+      if (inlineBadge) {
+        inlineBadge.textContent = `${(query.exampleResults ?? []).length} row${(query.exampleResults ?? []).length !== 1 ? 's' : ''}`;
+      }
+      inlineSection.classList.remove('hidden');
+    } else {
+      inlineSection.classList.add('hidden');
+    }
+  }
+
+  // Enable copy / save buttons
+  const copyBtn = qs('#btn-copy');
+  const saveBtn = qs('#btn-save-preset');
+  if (copyBtn) copyBtn.disabled = false;
+  if (saveBtn) saveBtn.disabled = false;
+
+  // Navigate to step 4
+  state.maxReached = Math.max(state.maxReached, 4);
+  goToStep(4);
+
+  // Close the modal
+  closeModal('library');
+  showToast(`Loaded: ${query.title}`, 'success');
+}
+
+/** Initialise all library modal interactions */
+async function initLibrary() {
+  const modal = qs('#modal-library');
+  if (!modal) return;
+
+  // Lazy-load the library the first time the modal opens
+  modal.addEventListener('transitionend', () => {}, { once: false });
+
+  // We intercept the modal-open event by patching openModal or using a MutationObserver
+  // Simpler: listen for when the modal gets the 'open' class via the existing openModal()
+  const obs = new MutationObserver(() => {
+    if (modal.classList.contains('open') && state.lib.queries.length === 0) {
+      ensureLibrary().then(() => {
+        filterLibrary();
+      });
+    } else if (modal.classList.contains('open')) {
+      filterLibrary();
+    }
+  });
+  obs.observe(modal, { attributes: true, attributeFilter: ['class'] });
+
+  // Search input
+  qs('#lib-search')?.addEventListener('input', debounce(e => {
+    state.lib.text = e.target.value;
+    filterLibrary();
+  }, 200));
+
+  // Category dropdown
+  qs('#lib-cat-select')?.addEventListener('change', e => {
+    state.lib.category = e.target.value;
+    filterLibrary();
+  });
+
+  // Popularity pills
+  qsa('.lib-pop-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      qsa('.lib-pop-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      state.lib.popularity = pill.dataset.pop;
+      filterLibrary();
+    });
+  });
+
+  // Copy SPL button inside library detail
+  qs('#lib-btn-copy')?.addEventListener('click', async () => {
+    const spl = qs('#lib-spl-pre')?.dataset?.raw ?? '';
+    if (!spl) return;
+    try {
+      if (window.api?.copyToClipboard) await window.api.copyToClipboard(spl);
+      else await navigator.clipboard.writeText(spl);
+      showToast('SPL copied!', 'success');
+    } catch { showToast('Copy failed', 'error'); }
+  });
+
+  // Load into Editor button
+  qs('#lib-btn-load')?.addEventListener('click', loadLibraryQuery);
+}
+
+/* ============================================================
    INIT
    ============================================================ */
 
@@ -976,6 +1237,9 @@ function init() {
 
     /* ---- Modals & header menu ---- */
     initModals();
+
+    /* ---- Library ---- */
+    initLibrary();
 
     /* ---- Wizard navigation buttons ---- */
     qs('#btn-back')?.addEventListener('click', () => goToStep(state.step - 1));
@@ -1025,6 +1289,7 @@ function init() {
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.shiftKey && e.key === 'C') { e.preventDefault(); doCopy(); }
       if (ctrl && e.shiftKey && e.key === 'N') { e.preventDefault(); doReset(); }
+      if (ctrl && e.shiftKey && e.key === 'L') { e.preventDefault(); openModal('library'); }
       if (e.key === 'Escape') qsa('.toast').forEach(t => t.click());
     });
 

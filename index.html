@@ -19,6 +19,11 @@
       Splunk Query Studio
     </div>
     <div class="header-actions">
+      <!-- Library button -->
+      <button class="btn btn-ghost" id="btn-library" title="Browse SPL Query Library (Ctrl+Shift+L)" data-open-modal="library">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h4a1 1 0 011 1v8a1 1 0 01-1 1H2V3z"/><path d="M9 3h5v10H9"/><path d="M7 6h2M7 9h2"/></svg>
+        Library
+      </button>
       <button class="btn btn-ghost" id="btn-save-preset" title="Save current query as preset" disabled>
         Save Preset
       </button>
@@ -247,6 +252,16 @@
 
         <div class="optimization-metrics" id="optimization-metrics">
           <!-- Populated by app.js -->
+        </div>
+
+        <!-- Library example results (shown only when a library query is loaded) -->
+        <div class="lib-inline-results hidden" id="lib-inline-results">
+          <div class="lib-inline-header">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 7h12M6 7v7"/></svg>
+            Example Results
+            <span class="lib-inline-badge" id="lib-inline-badge"></span>
+          </div>
+          <div class="lib-results-wrap" id="lib-inline-results-wrap"></div>
         </div>
 
         <div class="action-grid">
@@ -537,6 +552,123 @@
     </div>
   </div>
 </div>
+
+<!-- ===== SPL QUERY LIBRARY MODAL ===== -->
+<div class="modal-overlay" id="modal-library" aria-hidden="true" role="dialog" aria-labelledby="modal-library-title">
+  <div class="modal-box lib-modal-box">
+
+    <!-- Header -->
+    <div class="modal-head">
+      <div class="modal-head-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h4a1 1 0 011 1v8a1 1 0 01-1 1H2V3z"/><path d="M9 3h5v10H9"/><path d="M7 6h2M7 9h2"/></svg>
+      </div>
+      <div class="modal-head-text">
+        <h2 class="modal-title" id="modal-library-title">SPL Query Library</h2>
+        <p class="modal-subtitle">40+ ready-to-use queries — from popular essentials to hidden gems</p>
+      </div>
+      <button class="modal-close" data-close-modal="library" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+
+    <!-- 2-column body -->
+    <div class="lib-body">
+
+      <!-- LEFT PANEL: filters + query list -->
+      <div class="lib-sidebar">
+
+        <!-- Search -->
+        <div class="lib-search-wrap">
+          <svg class="lib-search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4"/><path d="M10 10l2.5 2.5"/></svg>
+          <input class="lib-search" id="lib-search" type="text" placeholder="Search title, description, tags…" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <!-- Category dropdown -->
+        <select class="lib-cat-select" id="lib-cat-select">
+          <option value="all">All Categories</option>
+          <option value="soc">SOC / Security</option>
+          <option value="itops">IT Operations</option>
+          <option value="financial">Financial / FinTech</option>
+          <option value="data">Data Engineering</option>
+          <option value="healthcare">Healthcare</option>
+          <option value="cloud">Cloud / DevOps</option>
+          <option value="network">Network</option>
+        </select>
+
+        <!-- Popularity pills -->
+        <div class="lib-pop-pills" id="lib-pop-pills">
+          <button class="lib-pop-pill active" data-pop="all">All</button>
+          <button class="lib-pop-pill" data-pop="top">⭐ Top Picks</button>
+          <button class="lib-pop-pill" data-pop="gem">💎 Hidden Gems</button>
+        </div>
+
+        <!-- Result count -->
+        <div class="lib-count" id="lib-count">Loading…</div>
+
+        <!-- Query cards list -->
+        <div class="lib-list" id="lib-list">
+          <!-- Populated by app.js -->
+        </div>
+
+      </div><!-- /lib-sidebar -->
+
+      <!-- RIGHT PANEL: query detail -->
+      <div class="lib-detail" id="lib-detail">
+
+        <!-- Empty state (shown before selection) -->
+        <div class="lib-empty-state" id="lib-empty-state">
+          <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h12a2 2 0 012 2v20a2 2 0 01-2 2H5V8z"/><path d="M23 8h12v24H23"/><path d="M17 14h6M17 19h6M17 24h6"/></svg>
+          <p>Select a query from the list to preview the SPL and example results</p>
+        </div>
+
+        <!-- Query detail view (hidden until selection) -->
+        <div class="lib-query-view hidden" id="lib-query-view">
+
+          <div class="lib-query-head">
+            <div class="lib-query-badges" id="lib-query-badges">
+              <!-- category badge, gem badge populated by app.js -->
+            </div>
+            <h3 class="lib-query-title" id="lib-query-title">—</h3>
+            <p class="lib-query-desc" id="lib-query-desc"></p>
+          </div>
+
+          <div class="lib-detail-section">
+            <div class="lib-section-label">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4l4 4-4 4M9 12h4"/></svg>
+              SPL Query
+            </div>
+            <pre class="lib-spl-pre" id="lib-spl-pre"></pre>
+          </div>
+
+          <div class="lib-detail-section" id="lib-results-section">
+            <div class="lib-section-label">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 7h12M6 7v7"/></svg>
+              Example Results
+            </div>
+            <div class="lib-results-wrap" id="lib-results-wrap">
+              <!-- Table populated by app.js -->
+            </div>
+          </div>
+
+          <div class="lib-query-actions">
+            <button class="btn btn-ghost" id="lib-btn-copy">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="8" height="9" rx="1.2"/><path d="M11 5V3.8A.8.8 0 0010.2 3H3.8A.8.8 0 003 3.8v8.4a.8.8 0 00.8.8H5"/></svg>
+              Copy SPL
+            </button>
+            <button class="btn btn-primary" id="lib-btn-load">
+              Load into Editor
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+            </button>
+          </div>
+
+        </div><!-- /lib-query-view -->
+
+      </div><!-- /lib-detail -->
+
+    </div><!-- /lib-body -->
+
+  </div><!-- /lib-modal-box -->
+</div><!-- /modal-library -->
 
 <script type="module" src="renderer/js/app.js"></script>
 
