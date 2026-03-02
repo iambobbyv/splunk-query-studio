@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ & Help — Splunk Query Studio</title>
+  <meta name="description" content="Frequently asked questions and troubleshooting guide for Splunk Query Studio." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0a0e1a;
+      --surface:     #111827;
+      --elevated:    #1a2235;
+      --border:      rgba(55, 65, 81, 0.5);
+      --border-acc:  rgba(59, 130, 246, 0.35);
+      --text-1:      #f9fafb;
+      --text-2:      #d1d5db;
+      --text-3:      #9ca3af;
+      --blue:        #3b82f6;
+      --blue-dim:    rgba(59, 130, 246, 0.12);
+      --blue-hover:  rgba(59, 130, 246, 0.18);
+      --emerald:     #10b981;
+      --radius:      10px;
+      --radius-sm:   6px;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text-1);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Nav ── */
+    nav {
+      background: rgba(17, 24, 39, 0.95);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .nav-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-1);
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .nav-logo-icon {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #3b82f6, #10b981);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0;
+      flex-shrink: 0;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 13px;
+      color: var(--text-3);
+      transition: color 150ms;
+    }
+
+    .nav-links a:hover { color: var(--text-1); text-decoration: none; }
+
+    /* ── Hero ── */
+    .hero {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 64px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--blue-dim);
+      border: 1px solid var(--border-acc);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-1);
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+
+    .hero p {
+      font-size: 17px;
+      color: var(--text-2);
+      max-width: 520px;
+      margin: 0 auto 32px;
+    }
+
+    .hero-search {
+      max-width: 420px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .hero-search input {
+      width: 100%;
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 11px 16px 11px 42px;
+      font-size: 14px;
+      color: var(--text-1);
+      font-family: inherit;
+      transition: border-color 150ms;
+    }
+
+    .hero-search input::placeholder { color: var(--text-3); }
+    .hero-search input:focus { outline: none; border-color: var(--blue); }
+
+    .hero-search svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3);
+      pointer-events: none;
+    }
+
+    /* ── Main content ── */
+    .content {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ── Section ── */
+    .faq-section {
+      margin-bottom: 48px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+      flex-shrink: 0;
+    }
+
+    .section-icon svg { width: 16px; height: 16px; }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    /* ── FAQ Items ── */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    details {
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 150ms;
+    }
+
+    details[open] {
+      border-color: var(--border-acc);
+    }
+
+    summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-1);
+      cursor: pointer;
+      list-style: none;
+      -webkit-appearance: none;
+      appearance: none;
+      user-select: none;
+      transition: background 150ms;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    summary:hover { background: rgba(255,255,255,0.03); }
+
+    details[open] summary {
+      background: var(--blue-dim);
+      color: var(--blue);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-text { flex: 1; }
+
+    .summary-chevron {
+      width: 16px;
+      height: 16px;
+      color: var(--text-3);
+      flex-shrink: 0;
+      transition: transform 200ms ease;
+    }
+
+    details[open] .summary-chevron {
+      transform: rotate(180deg);
+      color: var(--blue);
+    }
+
+    .faq-body {
+      padding: 20px;
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.7;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .faq-body p { margin: 0; }
+
+    .faq-body strong {
+      color: var(--text-1);
+      font-weight: 600;
+    }
+
+    .faq-body code {
+      font-family: 'Consolas', 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 12.5px;
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 4px;
+      padding: 1px 6px;
+      color: #93c5fd;
+    }
+
+    .faq-body kbd {
+      font-size: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 7px;
+      color: var(--text-2);
+      box-shadow: 0 1px 0 var(--border);
+      font-family: inherit;
+    }
+
+    .faq-body ol,
+    .faq-body ul {
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .faq-body a { color: var(--blue); }
+
+    /* ── Step list ── */
+    .steps {
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .steps li::before {
+      content: counter(step);
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--blue-dim);
+      border: 1px solid var(--border-acc);
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Note box ── */
+    .note {
+      background: rgba(16,185,129,0.07);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text-2);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .note svg { flex-shrink: 0; color: var(--emerald); margin-top: 1px; }
+
+    /* ── Contact CTA ── */
+    .cta {
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      margin-top: 48px;
+    }
+
+    .cta h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-1);
+      margin-bottom: 10px;
+    }
+
+    .cta p {
+      color: var(--text-2);
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+
+    .cta-links {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--blue);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 150ms;
+    }
+
+    .btn-primary:hover { background: #2563eb; text-decoration: none; }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      padding: 10px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: border-color 150ms, color 150ms;
+    }
+
+    .btn-secondary:hover { border-color: rgba(55,65,81,0.9); color: var(--text-1); text-decoration: none; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-3);
+    }
+
+    footer a { color: var(--text-3); }
+    footer a:hover { color: var(--text-2); }
+
+    /* ── Search filter JS ── */
+    .faq-section.hidden { display: none; }
+    details.hidden { display: none; }
+    .no-results {
+      text-align: center;
+      color: var(--text-3);
+      font-size: 14px;
+      padding: 48px 0;
+      display: none;
+    }
+    .no-results.visible { display: block; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .hero { padding: 40px 20px 32px; }
+      .content { padding: 0 20px 60px; }
+      .cta { padding: 28px 20px; }
+      .nav-links { display: none; }
+      summary { padding: 14px 16px; font-size: 14px; }
+      .faq-body { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-inner">
+    <a href="https://souriapps.net" class="nav-logo">
+      <div class="nav-logo-icon">SQS</div>
+      Splunk Query Studio
+    </a>
+    <ul class="nav-links">
+      <li><a href="https://souriapps.net">Home</a></li>
+      <li><a href="https://souriapps.net/products">Products</a></li>
+      <li><a href="mailto:support@souriapps.net">Support</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 8c0-1.5 2-1.5 2-3a2 2 0 10-4 0"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/></svg>
+    FAQ &amp; Help Center
+  </div>
+  <h1>How can we help?</h1>
+  <p>Answers to common questions about Splunk Query Studio — from getting started to advanced troubleshooting.</p>
+  <div class="hero-search">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>
+    <input type="search" id="faq-search" placeholder="Search questions…" autocomplete="off" />
+  </div>
+</div>
+
+<!-- Content -->
+<div class="content">
+  <div id="no-results" class="no-results">No questions match your search. Try a different term or <a href="mailto:support@souriapps.net">contact support</a>.</div>
+
+  <!-- Getting Started -->
+  <section class="faq-section" data-section="getting started">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l2 4h4l-3.3 2.4 1.3 4L8 10l-4 2.4 1.3-4L2 6h4z"/></svg>
+      </div>
+      <span class="section-title">Getting Started</span>
+    </div>
+    <div class="faq-list">
+
+      <details>
+        <summary>
+          <span class="summary-text">What is Splunk Query Studio?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>Splunk Query Studio is a desktop and mobile tool that helps SOC analysts and IT teams generate optimized Splunk SPL (Search Processing Language) queries — without memorizing syntax.</p>
+          <p>Select your data category (Network, Server, Data Center, or Applications), choose your specific platform, fill in parameters like IP addresses and time ranges, and the app builds a ready-to-use SPL query for you.</p>
+          <div class="note">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L3 4v4c0 3 2.5 5 5 6 2.5-1 5-3 5-6V4z"/></svg>
+            <span>The app is fully offline — no data is ever sent to external servers.</span>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">How do I generate a query?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>Follow the 4-step wizard:</p>
+          <ol class="steps">
+            <li>Pick a <strong>category</strong> — Network Operations, Server Operations, Data Center, or Applications.</li>
+            <li>Select your <strong>platform</strong> — Cisco, Palo Alto, Linux, VMware, etc.</li>
+            <li>Fill in <strong>parameters</strong> — IP address, time range, query type, and any field filters.</li>
+            <li><strong>Review and copy</strong> the generated SPL query.</li>
+          </ol>
+          <p>You can jump between any completed steps by clicking the progress bar at the top.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">How do I copy the generated SPL query?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>On Step 4, click the <strong>Copy SPL</strong> button in the header or in the results panel. The query is placed on your clipboard, ready to paste into Splunk's search bar.</p>
+          <p>You can also use the keyboard shortcut <kbd>Ctrl+Shift+C</kbd> (Windows/Linux) or <kbd>⌘+Shift+C</kbd> (Mac) to copy from any step.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">How do I start a new query?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>On Step 4, click <strong>New Query</strong> to reset all parameters and return to Step 1. You can also use <kbd>Ctrl+Shift+N</kbd> (or <kbd>⌘+Shift+N</kbd>) from any step.</p>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- AI Assistant -->
+  <section class="faq-section" data-section="ai assistant ollama">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="M6 7h.01M10 7h.01M6 10h4"/></svg>
+      </div>
+      <span class="section-title">AI Assistant</span>
+    </div>
+    <div class="faq-list">
+
+      <details>
+        <summary>
+          <span class="summary-text">Ollama is not detected — AI features aren't working</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>The AI chat requires <strong>Ollama</strong> running locally at <code>http://localhost:11434</code>. Follow these steps:</p>
+          <ol class="steps">
+            <li>Install Ollama from <a href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a></li>
+            <li>Pull a supported model: <code>ollama pull qwen2.5-coder</code></li>
+            <li>Start the server: <code>ollama serve</code></li>
+            <li>In the app, click <strong>Retry</strong> in the AI status bar at the top of the AI Advisor panel.</li>
+          </ol>
+          <div class="note">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L3 4v4c0 3 2.5 5 5 6 2.5-1 5-3 5-6V4z"/></svg>
+            <span>Even without Ollama, the SPL knowledge base — command lookup, templates, and optimization hints — works completely offline with no setup required.</span>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">Which AI models are supported?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>Any model installed in Ollama is supported. The app automatically selects the best available model for SPL reasoning. Recommended models (smallest first):</p>
+          <ul>
+            <li><code>qwen2.5-coder</code> — 1.9 GB — best code/SPL reasoning at this size</li>
+            <li><code>phi3.5</code> — 2.2 GB — strong reasoning, 128K context</li>
+            <li><code>llama3.2</code> — 2.0 GB — solid general purpose</li>
+            <li><code>gemma3</code> — 3.3 GB — Google, strong reasoning</li>
+            <li><code>mistral</code> — 4.1 GB — reliable fallback</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">Does the AI connect to the internet?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>No. The AI assistant communicates only with Ollama running on <code>localhost:11434</code> — your own machine. No queries, IP addresses, or conversation data are sent externally. The static knowledge base is bundled with the app and requires no network connection.</p>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- Queries & Presets -->
+  <section class="faq-section" data-section="queries presets spl splunk">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+      </div>
+      <span class="section-title">Queries &amp; Presets</span>
+    </div>
+    <div class="faq-list">
+
+      <details>
+        <summary>
+          <span class="summary-text">The generated query looks wrong or incomplete</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>Generated queries are optimized templates for common use cases. You may need to adjust the following to match your Splunk environment:</p>
+          <ul>
+            <li><strong>Index name</strong> — replace <code>index=*</code> with your actual index (e.g. <code>index=network_logs</code>)</li>
+            <li><strong>Sourcetype</strong> — match your Splunk sourcetype configuration</li>
+            <li><strong>Field names</strong> — field names vary by data source and parsing rules</li>
+          </ul>
+          <p>Use the <strong>AI Advisor</strong> panel to refine the query, or ask it to explain specific SPL commands.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">How do I save and reload presets?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>On Step 4, click <strong>Save Preset</strong> in the header or the results panel. Enter a name — the entire wizard state (category, platform, parameters, and query) is saved locally.</p>
+          <p>Access your presets in the right-hand panel under the <strong>Presets</strong> tab. Click any preset to restore it instantly. Presets are stored in your browser's <code>localStorage</code> and persist between app sessions.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">What do the optimization warnings mean?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>The AI Advisor panel analyzes your query against known SPL best practices and flags potential performance issues, such as:</p>
+          <ul>
+            <li><strong>No time bound</strong> — missing <code>earliest=</code> / <code>latest=</code> causes full-index scans</li>
+            <li><strong>Wildcard index</strong> — <code>index=*</code> searches all indexes, which is slow</li>
+            <li><strong>Leading wildcard</strong> — <code>=*value</code> cannot use the TSIDX index</li>
+            <li><strong>Transaction overuse</strong> — <code>| transaction</code> is memory-intensive; consider <code>| stats</code> instead</li>
+          </ul>
+          <p>These are warnings, not errors. The generated SPL is still valid — optimizations are recommendations to improve performance in production.</p>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- Platform & Compatibility -->
+  <section class="faq-section" data-section="platform compatibility splunk version mobile ipad ios macos windows">
+    <div class="section-header">
+      <div class="section-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 13v1M11 13v1M3 16h10"/></svg>
+      </div>
+      <span class="section-title">Platform &amp; Compatibility</span>
+    </div>
+    <div class="faq-list">
+
+      <details>
+        <summary>
+          <span class="summary-text">Which Splunk versions are supported?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>Generated SPL is compatible with <strong>Splunk Enterprise 7.x and later</strong>, and <strong>Splunk Cloud</strong>. The app does not connect to your Splunk instance — queries are generated locally and you paste them into Splunk's search bar.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">Does it work on iPhone, iPad, or mobile?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>Yes. Splunk Query Studio is fully responsive and optimized for iPhone and iPad. On mobile, the wizard uses a full-screen slide layout for easy step-by-step navigation.</p>
+          <ul>
+            <li>Tap the <strong>☰ hamburger icon</strong> to open the category sidebar</li>
+            <li>Tap the <strong>clock icon</strong> to open the History and AI Advisor panel</li>
+            <li>All touch targets are sized for comfortable one-handed use</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">Which desktop operating systems are supported?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>The desktop app supports <strong>macOS</strong> (Apple Silicon and Intel) and <strong>Windows</strong> (10/11). It is built with Electron and runs natively on both platforms.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">Does the app send any data to the internet?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p><strong>No.</strong> Splunk Query Studio is fully offline. No queries, IP addresses, or usage data are ever transmitted. All data including query history and saved presets is stored locally on your device.</p>
+          <p>The AI assistant only communicates with Ollama on <code>localhost</code>. External links open in your default browser, but no data is sent automatically.</p>
+          <div class="note">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L3 4v4c0 3 2.5 5 5 6 2.5-1 5-3 5-6V4z"/></svg>
+            <span>See our <a href="https://souriapps.net/privacy">Privacy Policy</a> for the full details.</span>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="summary-text">Is Splunk Query Studio affiliated with Splunk Inc.?</span>
+          <svg class="summary-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="faq-body">
+          <p>No. Splunk® is a registered trademark of Splunk Inc. Splunk Query Studio is an independent tool developed by <a href="https://souriapps.net">Souri Apps</a> and is not affiliated with, authorized by, or endorsed by Splunk Inc. in any way.</p>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- Contact CTA -->
+  <div class="cta">
+    <h2>Still need help?</h2>
+    <p>Can't find the answer you're looking for? Reach out — we're happy to help.</p>
+    <div class="cta-links">
+      <a href="mailto:support@souriapps.net" class="btn-primary">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12v9H2z"/><path d="M2 4l6 5 6-5"/></svg>
+        support@souriapps.net
+      </a>
+      <a href="mailto:feedback@souriapps.net" class="btn-secondary">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 2V4a1 1 0 011-1z"/></svg>
+        Send Feedback
+      </a>
+      <a href="https://souriapps.net" class="btn-secondary">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c-2 2-3 4-3 6s1 4 3 6M8 2c2 2 3 4 3 6s-1 4-3 6"/></svg>
+        souriapps.net
+      </a>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<footer>
+  <p>© 2026 Souri Apps. All rights reserved. &nbsp;·&nbsp;
+    <a href="https://souriapps.net/privacy">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="https://souriapps.net/terms">Terms of Service</a> &nbsp;·&nbsp;
+    <a href="https://souriapps.net/products">Products</a>
+  </p>
+  <p style="margin-top:6px;">Not affiliated with or endorsed by Splunk Inc.</p>
+</footer>
+
+<script>
+  // Search filter
+  const searchInput = document.getElementById('faq-search');
+  const noResults   = document.getElementById('no-results');
+  const sections    = document.querySelectorAll('.faq-section');
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim().toLowerCase();
+    let anyVisible = false;
+
+    sections.forEach(section => {
+      const items = section.querySelectorAll('details');
+      let sectionVisible = false;
+
+      items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        const sectionData = section.dataset.section || '';
+        const match = !q || text.includes(q) || sectionData.includes(q);
+        item.classList.toggle('hidden', !match);
+        if (match) sectionVisible = true;
+      });
+
+      section.classList.toggle('hidden', !sectionVisible);
+      if (sectionVisible) anyVisible = true;
+    });
+
+    noResults.classList.toggle('visible', !anyVisible && q.length > 0);
+  });
+</script>
+
+</body>
+</html>

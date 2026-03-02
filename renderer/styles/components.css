@@ -1828,13 +1828,22 @@ kbd {
   padding: 10px var(--space-4);
   background: none;
   border: none;
+  -webkit-appearance: none;
+  appearance: none;
   font-size: 13px;
   font-weight: 500;
   font-family: inherit;
   color: var(--text-primary);
+  -webkit-text-fill-color: var(--text-primary);
   cursor: pointer;
   text-align: left;
   transition: background var(--transition-fast);
+}
+
+.faq-question span {
+  flex: 1;
+  color: var(--text-primary);
+  -webkit-text-fill-color: var(--text-primary);
 }
 
 .faq-question:hover {
@@ -1844,6 +1853,12 @@ kbd {
 .faq-question[aria-expanded="true"] {
   background: var(--accent-blue-dim);
   color: var(--accent-blue);
+  -webkit-text-fill-color: var(--accent-blue);
+}
+
+.faq-question[aria-expanded="true"] span {
+  color: var(--accent-blue);
+  -webkit-text-fill-color: var(--accent-blue);
 }
 
 .faq-chevron {
