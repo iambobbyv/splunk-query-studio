@@ -9,7 +9,7 @@ import { highlight } from './highlighter.js';
 import { icons, showToast, qs, qsa, escapeHtml } from './ui.js';
 import {
   loadKnowledge, checkOllama, askOllama,
-  analyzeQuery, getAutoSuggestions, searchKnowledge
+  analyzeQuery, getAutoSuggestions, searchKnowledge, resetOllamaCheck
 } from './ai-assistant.js';
 
 /* ============================================================
@@ -824,19 +824,50 @@ function initAsideTabs() {
   });
 }
 
-// ── Ollama status ──────────────────────────────────────────────────────────
+// ── Ollama status + background polling ────────────────────────────────────
+let _ollamaRetryTimer = null;
+
 async function updateAIStatus() {
-  const dot  = qs('#ai-status-dot');
-  const text = qs('#ai-status-text');
+  const dot      = qs('#ai-status-dot');
+  const text     = qs('#ai-status-text');
+  const retryBtn = qs('#ai-retry-btn');
   if (!dot || !text) return;
 
+  // Show checking state
+  dot.className    = 'ai-status-dot';
+  text.textContent = 'Checking for Ollama…';
+  if (retryBtn) retryBtn.style.display = 'none';
+
   const { available, model } = await checkOllama();
+
   if (available) {
-    dot.className  = 'ai-status-dot online';
+    dot.className    = 'ai-status-dot online';
     text.textContent = `Ollama · ${model} · ready`;
+    if (retryBtn) retryBtn.style.display = 'none';
+    // Stop background polling if it was running
+    if (_ollamaRetryTimer) { clearInterval(_ollamaRetryTimer); _ollamaRetryTimer = null; }
   } else {
-    dot.className  = 'ai-status-dot offline';
-    text.textContent = 'Knowledge base mode (Ollama not detected)';
+    dot.className    = 'ai-status-dot offline';
+    text.textContent = 'Knowledge base active · Ollama offline';
+    if (retryBtn) retryBtn.style.display = '';
+
+    // Background poll every 30 s — silently reconnects if Ollama starts later
+    if (!_ollamaRetryTimer) {
+      _ollamaRetryTimer = setInterval(async () => {
+        resetOllamaCheck();
+        const { available: on, model: m } = await checkOllama();
+        if (on) {
+          clearInterval(_ollamaRetryTimer); _ollamaRetryTimer = null;
+          const d = qs('#ai-status-dot');
+          const t = qs('#ai-status-text');
+          const r = qs('#ai-retry-btn');
+          if (d) d.className    = 'ai-status-dot online';
+          if (t) t.textContent  = `Ollama · ${m} · ready`;
+          if (r) r.style.display = 'none';
+          showToast('Ollama connected — AI mode enabled!', 'success');
+        }
+      }, 30_000);
+    }
   }
 }
 
@@ -1020,6 +1051,12 @@ async function staticKBResponse(query) {
 function initAIPanel() {
   loadKnowledge(); // pre-load in background
   updateAIStatus();
+
+  // Retry button — clears cache and re-probes Ollama
+  qs('#ai-retry-btn')?.addEventListener('click', () => {
+    resetOllamaCheck();
+    updateAIStatus();
+  });
 
   // Send button
   qs('#ai-send-btn')?.addEventListener('click', () => {

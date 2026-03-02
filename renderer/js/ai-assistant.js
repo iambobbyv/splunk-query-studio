@@ -30,6 +30,16 @@ export async function loadKnowledge() {
 }
 
 /* ── Ollama availability check ──────────────────────────────────────────── */
+
+/**
+ * Reset the cached Ollama status so the next checkOllama() call does a fresh network probe.
+ * Call this before a manual retry or background re-poll.
+ */
+export function resetOllamaCheck() {
+  ollamaAvailable = null;
+  ollamaModel = null;
+}
+
 export async function checkOllama() {
   if (ollamaAvailable !== null) return { available: ollamaAvailable, model: ollamaModel };
   try {

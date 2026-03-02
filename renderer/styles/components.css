@@ -1313,10 +1313,34 @@ kbd {
   border-radius: 50%;
   background: #64748b;
   flex-shrink: 0;
-  transition: background 300ms;
+  transition: background 300ms, box-shadow 300ms;
 }
 .ai-status-dot.online  { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.5); }
-.ai-status-dot.offline { background: #3b82f6; }
+.ai-status-dot.offline { background: #f59e0b; box-shadow: 0 0 5px rgba(245,158,11,0.35); }
+
+/* Retry button inside status bar */
+.ai-retry-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+.ai-retry-btn:hover {
+  color: var(--accent-blue);
+  border-color: var(--border-accent);
+  background: var(--accent-blue-dim);
+}
+.ai-retry-btn svg { flex-shrink: 0; }
 
 .ai-chat-messages {
   flex: 1;
