@@ -174,10 +174,21 @@
 main {
   grid-area: main;
   overflow-y: auto;
-  padding: var(--space-5) var(--space-6);
+  /* Fluid horizontal padding — narrows content at wider viewports */
+  padding: var(--space-2) clamp(var(--space-5), 5vw, var(--space-8));
+  padding-bottom: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  align-items: center; /* center wizard content horizontally */
+  gap: var(--space-3);
+}
+
+/* Constrain wizard content to a readable max-width, centered in main */
+.wizard-stepper,
+.wizard-panel,
+.wizard-nav {
+  width: 100%;
+  max-width: 860px;
 }
 
 /* ----- Slide wrapper (transparent on desktop) ----- */
@@ -395,7 +406,8 @@ main {
       / 1fr;
   }
   .sidebar { display: none; }
-  main { padding: var(--space-4) var(--space-5); }
+  /* Keep fluid padding — content still centered, slightly more breathing room */
+  main { padding: var(--space-2) clamp(var(--space-4), 4vw, var(--space-7)); padding-bottom: var(--space-4); }
 }
 
 /* ─── Mobile menu button (hamburger) — hidden on desktop ─── */
@@ -523,10 +535,18 @@ body.aside-open .mobile-backdrop {
 
   /* ─── Main content padding ─── */
   main {
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-3) var(--space-3);
     padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
     overflow: hidden; /* panels scroll internally */
     gap: var(--space-2);
+    align-items: stretch; /* reset: panels fill full width for slide layout */
+  }
+
+  /* Remove desktop max-width on mobile — slides fill the screen */
+  .wizard-stepper,
+  .wizard-panel,
+  .wizard-nav {
+    max-width: none;
   }
 
   /* ─── Hide desktop stepper, show mobile dots ─── */
