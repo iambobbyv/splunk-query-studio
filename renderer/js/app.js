@@ -1094,6 +1094,58 @@ function initAIPanel() {
 }
 
 /* ============================================================
+   THEME TOGGLE
+   ============================================================ */
+
+function initTheme() {
+  const html = document.documentElement;
+  const btn  = qs('#btn-theme-toggle');
+
+  // Apply saved theme on load
+  const saved = localStorage.getItem('sqs-theme');
+  if (saved === 'light') html.dataset.theme = 'light';
+
+  btn?.addEventListener('click', () => {
+    const isLight = html.dataset.theme === 'light';
+    if (isLight) {
+      delete html.dataset.theme;
+      localStorage.removeItem('sqs-theme');
+    } else {
+      html.dataset.theme = 'light';
+      localStorage.setItem('sqs-theme', 'light');
+    }
+  });
+}
+
+/* ============================================================
+   FAQ ACCORDION
+   ============================================================ */
+
+function initFAQ() {
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.faq-question');
+    if (!btn) return;
+    const isOpen = btn.getAttribute('aria-expanded') === 'true';
+    const answer = btn.nextElementSibling;
+    if (!answer?.classList.contains('faq-answer')) return;
+
+    // Close all siblings first
+    const modal = btn.closest('.modal-body');
+    if (modal) {
+      modal.querySelectorAll('.faq-question[aria-expanded="true"]').forEach(q => {
+        if (q !== btn) {
+          q.setAttribute('aria-expanded', 'false');
+          q.nextElementSibling?.classList.remove('open');
+        }
+      });
+    }
+
+    btn.setAttribute('aria-expanded', String(!isOpen));
+    answer.classList.toggle('open', !isOpen);
+  });
+}
+
+/* ============================================================
    INIT
    ============================================================ */
 
@@ -1114,6 +1166,12 @@ function init() {
 
     /* ---- Modals & header menu ---- */
     initModals();
+
+    /* ---- Theme toggle ---- */
+    initTheme();
+
+    /* ---- FAQ accordion ---- */
+    initFAQ();
 
     /* ---- Mobile navigation ---- */
     initMobileNav();
