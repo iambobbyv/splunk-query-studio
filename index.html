@@ -597,147 +597,123 @@
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
       </button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body faq-modal-body">
 
       <div class="faq-group-label">Getting Started</div>
+      <div class="faq-list">
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>What is Splunk Query Studio?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>Splunk Query Studio is a desktop and mobile tool that helps SOC analysts and IT teams generate optimized Splunk SPL (Search Processing Language) queries without memorizing syntax. Select your data category, platform, and parameters — the app builds the query for you.</p>
-        </div>
-      </div>
+        <details class="faq-details">
+          <summary class="faq-summary">What is Splunk Query Studio?</summary>
+          <div class="faq-answer">
+            <p>A desktop and mobile tool that helps SOC analysts and IT teams generate optimized Splunk SPL queries — without memorizing syntax. Pick a category, platform, and parameters and the app builds the query for you.</p>
+          </div>
+        </details>
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>How do I generate a query?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>Follow the 4-step wizard: <strong>1</strong> pick a category (Network, Server, etc.), <strong>2</strong> select your platform/technology, <strong>3</strong> fill in parameters (IP, time range, etc.), then <strong>4</strong> copy or review the generated SPL. You can jump between completed steps using the progress bar at the top.</p>
-        </div>
-      </div>
+        <details class="faq-details">
+          <summary class="faq-summary">How do I generate a query?</summary>
+          <div class="faq-answer">
+            <p>Follow the 4-step wizard: <strong>1</strong> pick a category (Network, Server, etc.), <strong>2</strong> select your platform, <strong>3</strong> fill in parameters (IP, time range, etc.), then <strong>4</strong> copy the generated SPL. Jump between completed steps using the progress bar at the top.</p>
+          </div>
+        </details>
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>How do I copy the SPL query?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>On step 4, click <strong>Copy SPL</strong> in the header or the copy button in the results panel. You can also use <kbd>Ctrl+Shift+C</kbd> (or <kbd>⌘+Shift+C</kbd> on Mac) to copy at any time. The SPL is placed directly on your clipboard, ready to paste into Splunk.</p>
-        </div>
+        <details class="faq-details">
+          <summary class="faq-summary">How do I copy the SPL query?</summary>
+          <div class="faq-answer">
+            <p>On step 4, click <strong>Copy SPL</strong> in the header or results panel. Keyboard shortcut: <kbd>Ctrl+Shift+C</kbd> / <kbd>⌘+Shift+C</kbd>.</p>
+          </div>
+        </details>
+
+        <details class="faq-details">
+          <summary class="faq-summary">How do I start a new query?</summary>
+          <div class="faq-answer">
+            <p>Click <strong>New Query</strong> on step 4, or press <kbd>Ctrl+Shift+N</kbd> / <kbd>⌘+Shift+N</kbd> from any step.</p>
+          </div>
+        </details>
+
       </div>
 
       <div class="faq-group-label">AI Assistant</div>
+      <div class="faq-list">
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>Ollama is not detected — AI features aren't working</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>The AI chat requires <strong>Ollama</strong> running locally at <code>http://localhost:11434</code>. To fix this:</p>
-          <ol>
-            <li>Install Ollama from <button class="modal-link-btn" data-href="https://ollama.com">ollama.com</button></li>
-            <li>Run <code>ollama pull qwen2.5-coder</code> (or any supported model)</li>
-            <li>Start Ollama: <code>ollama serve</code></li>
-            <li>Click <strong>Retry</strong> in the AI status bar</li>
-          </ol>
-          <p>Even without Ollama, the SPL knowledge base (command lookup, templates, optimization hints) works offline with no setup required.</p>
-        </div>
-      </div>
+        <details class="faq-details">
+          <summary class="faq-summary">Ollama is not detected — AI features aren't working</summary>
+          <div class="faq-answer">
+            <p>The AI chat requires <strong>Ollama</strong> at <code>http://localhost:11434</code>.</p>
+            <ol>
+              <li>Install from <button class="modal-link-btn" data-href="https://ollama.com">ollama.com</button></li>
+              <li>Run: <code>ollama pull qwen2.5-coder</code></li>
+              <li>Start: <code>ollama serve</code></li>
+              <li>Click <strong>Retry</strong> in the AI status bar</li>
+            </ol>
+            <p>The SPL knowledge base (templates, hints) always works offline without Ollama.</p>
+          </div>
+        </details>
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>Which AI models are supported?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>Any model installed in Ollama is supported. Recommended (smallest first): <code>qwen2.5-coder</code> (1.9 GB), <code>phi3.5</code> (2.2 GB), <code>llama3.2</code> (2.0 GB). The app automatically selects the best available model for SPL reasoning.</p>
-        </div>
+        <details class="faq-details">
+          <summary class="faq-summary">Which AI models are supported?</summary>
+          <div class="faq-answer">
+            <p>Any Ollama model. Recommended: <code>qwen2.5-coder</code> (1.9 GB), <code>phi3.5</code> (2.2 GB), <code>llama3.2</code> (2.0 GB). The app auto-selects the best available model.</p>
+          </div>
+        </details>
+
       </div>
 
       <div class="faq-group-label">Queries &amp; Presets</div>
+      <div class="faq-list">
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>The generated query looks wrong or incomplete</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>Generated queries are templates optimized for common use cases. You may need to adjust:</p>
-          <ul>
-            <li><strong>Index name</strong> — replace <code>index=*</code> with your actual index (e.g. <code>index=network_logs</code>)</li>
-            <li><strong>Sourcetype</strong> — match your Splunk sourcetype configuration</li>
-            <li><strong>Field names</strong> — field names vary by your data source and parsing</li>
-          </ul>
-          <p>Use the AI Assistant panel to refine the query, or ask it to explain specific SPL commands.</p>
-        </div>
-      </div>
+        <details class="faq-details">
+          <summary class="faq-summary">The generated query looks wrong or incomplete</summary>
+          <div class="faq-answer">
+            <p>Queries are templates — you may need to adjust:</p>
+            <ul>
+              <li><strong>Index</strong> — replace <code>index=*</code> with your actual index</li>
+              <li><strong>Sourcetype</strong> — match your Splunk sourcetype config</li>
+              <li><strong>Field names</strong> — vary by data source and parsing rules</li>
+            </ul>
+            <p>Use the AI Advisor to refine or explain specific commands.</p>
+          </div>
+        </details>
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>How do I save and reload presets?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>On step 4, click <strong>Save Preset</strong> (or in the header). Enter a name — the current wizard state (category, platform, parameters, and query) is saved locally. Access your presets in the right-hand panel under the <strong>Presets</strong> tab. Click a preset to restore it instantly. Presets are stored in your browser's localStorage and persist between sessions.</p>
-        </div>
-      </div>
+        <details class="faq-details">
+          <summary class="faq-summary">How do I save and reload presets?</summary>
+          <div class="faq-answer">
+            <p>On step 4, click <strong>Save Preset</strong>. Enter a name — the wizard state (category, platform, parameters, query) is saved in localStorage. Access presets in the right-hand panel under the <strong>Presets</strong> tab.</p>
+          </div>
+        </details>
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>How do I start a new query?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>On step 4, click <strong>New Query</strong> to reset all parameters and return to step 1. You can also use <kbd>Ctrl+Shift+N</kbd> (or <kbd>⌘+Shift+N</kbd>) from any step.</p>
-        </div>
       </div>
 
       <div class="faq-group-label">Platform &amp; Compatibility</div>
+      <div class="faq-list">
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>Which Splunk versions are supported?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>Generated SPL is compatible with Splunk Enterprise 7.x and later, and Splunk Cloud. The app does not connect to your Splunk instance — queries are generated locally and you paste them into Splunk's search bar.</p>
-        </div>
-      </div>
+        <details class="faq-details">
+          <summary class="faq-summary">Which Splunk versions are supported?</summary>
+          <div class="faq-answer">
+            <p>Splunk Enterprise 7.x and later, and Splunk Cloud. The app generates queries locally — paste them into Splunk's search bar.</p>
+          </div>
+        </details>
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>Does it work on iPhone, iPad, or mobile?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>Yes. The app is fully responsive and supports iPhone and iPad. On mobile, the wizard uses a full-screen slide layout for easy navigation. The sidebar and history panel open as drawer overlays. Tap the hamburger icon (≡) for categories and the clock icon for history and the AI panel.</p>
-        </div>
-      </div>
+        <details class="faq-details">
+          <summary class="faq-summary">Does it work on iPhone, iPad, or mobile?</summary>
+          <div class="faq-answer">
+            <p>Yes. Fully responsive for iPhone and iPad with full-screen slide wizard, drawer sidebar, and bottom-sheet history panel. Tap ☰ for categories and the clock icon for history/AI.</p>
+          </div>
+        </details>
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>Does the app send data to the internet?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>No. Splunk Query Studio is fully offline. No queries, IP addresses, or usage data are ever transmitted. The AI assistant talks only to <code>localhost:11434</code> (Ollama on your own machine). External links open in your browser but no data is sent automatically.</p>
-        </div>
-      </div>
+        <details class="faq-details">
+          <summary class="faq-summary">Does the app send data to the internet?</summary>
+          <div class="faq-answer">
+            <p>No. Fully offline. No queries, IPs, or usage data are ever transmitted. The AI only talks to <code>localhost:11434</code>. History and presets stay on your device.</p>
+          </div>
+        </details>
 
-      <div class="faq-item">
-        <button class="faq-question" aria-expanded="false">
-          <span>How do I report a bug or request a feature?</span>
-          <svg class="faq-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
-        </button>
-        <div class="faq-answer">
-          <p>Use the <strong>Send Feedback</strong> option in the Help menu, or email <button class="modal-link-btn" data-href="mailto:support@souriapps.net">support@souriapps.net</button>. For general questions contact <button class="modal-link-btn" data-href="mailto:contact@souriapps.net">contact@souriapps.net</button>.</p>
-        </div>
+        <details class="faq-details">
+          <summary class="faq-summary">How do I report a bug or request a feature?</summary>
+          <div class="faq-answer">
+            <p>Use <strong>Send Feedback</strong> in the Help menu, or email <button class="modal-link-btn" data-href="mailto:support@souriapps.net">support@souriapps.net</button> / <button class="modal-link-btn" data-href="mailto:contact@souriapps.net">contact@souriapps.net</button>.</p>
+          </div>
+        </details>
+
       </div>
 
     </div>
