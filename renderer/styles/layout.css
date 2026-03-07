@@ -9,7 +9,7 @@
   grid-template:
     "header  header  header"  48px
     "sidebar main    aside"   1fr
-    / 280px  1fr     360px;
+    / 240px  minmax(0, 1fr)   300px;
   overflow: hidden;
 }
 
@@ -72,6 +72,8 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  min-width: 0;  /* allow grid cell to shrink below content min-width */
+  min-height: 0;
 }
 
 .sidebar-section {
@@ -174,6 +176,7 @@
 main {
   grid-area: main;
   overflow-y: auto;
+  overflow-x: hidden;  /* clip horizontally-oversized children; don't let them push aside off-screen */
   /* Fluid horizontal padding — narrows content at wider viewports */
   padding: var(--space-2) clamp(var(--space-5), 5vw, var(--space-8));
   padding-bottom: var(--space-4);
@@ -181,6 +184,7 @@ main {
   flex-direction: column;
   align-items: center; /* center wizard content horizontally */
   gap: var(--space-3);
+  min-width: 0;        /* critical: allow grid cell to shrink below min-content width */
 }
 
 /* Constrain wizard content to a readable max-width, centered in main */
@@ -209,6 +213,8 @@ main {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  min-width: 0;  /* allow grid cell to shrink below content min-width */
+  min-height: 0;
 }
 
 .aside-header {
@@ -388,22 +394,35 @@ main {
 }
 
 /* ----- Responsive ----- */
+
+/* Step sublabels (the "current selection" summaries) only show on wide screens */
+@media (max-width: 1500px) {
+  .step-sublabel { display: none; }
+}
+
+/* 3-column → 2-column: collapse aside into hidden state */
 @media (max-width: 1280px) {
   .app-frame {
     grid-template:
       "header  header"  48px
       "sidebar main"    1fr
-      / 280px  1fr;
+      / 240px  minmax(0, 1fr);
   }
   .history-panel { display: none; }
 }
 
-@media (max-width: 1024px) {
+/* Compact stepper: hide all step label text, keep numbered circles */
+@media (max-width: 1100px) {
+  .step-info { display: none; }
+}
+
+/* 2-column → 1-column: collapse sidebar */
+@media (max-width: 900px) {
   .app-frame {
     grid-template:
       "header" 48px
       "main"   1fr
-      / 1fr;
+      / minmax(0, 1fr);
   }
   .sidebar { display: none; }
   /* Keep fluid padding — content still centered, slightly more breathing room */

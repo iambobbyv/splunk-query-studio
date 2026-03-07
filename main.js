@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, clipboard, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, clipboard, shell, screen } = require('electron');
 const path = require('path');
 
 const SPLASH_DURATION = 10_000; // 10 seconds
@@ -37,10 +37,15 @@ function createSplash() {
 
 /* ── Main application window ────────────────────────────────────────────── */
 function createMainWindow() {
+  // Size the window to fit the screen — fallback to 1600×900 if screen API not ready
+  const workArea = screen.getPrimaryDisplay?.()?.workAreaSize ?? { width: 1600, height: 900 };
   const win = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    show: false, // revealed after splash
+    width:     Math.min(1600, workArea.width),
+    height:    Math.min(960,  workArea.height),
+    minWidth:  900,
+    minHeight: 620,
+    center:    true,
+    show:      false, // revealed after splash
     backgroundColor: '#020617',
     icon: APP_ICON,
     webPreferences: {
@@ -86,15 +91,20 @@ app.whenReady().then(() => {
 
   console.log('[main] app ready — splash shown, main window hidden for', SPLASH_DURATION / 1000, 's');
 
-  // After SPLASH_DURATION ms: close splash, reveal main window
+  // After SPLASH_DURATION ms: close splash, maximize + reveal main window
   setTimeout(() => {
     try { splash.destroy(); } catch (_) { /* already closed */ }
+    win.maximize();   // fill the screen — avoids any fixed-width clipping issues
     win.show();
-    console.log('[main] splash closed, main window shown');
+    console.log('[main] splash closed, main window shown (maximized)');
   }, SPLASH_DURATION);
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow().show();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      const w = createMainWindow();
+      w.maximize();
+      w.show();
+    }
   });
 });
 

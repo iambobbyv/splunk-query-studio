@@ -24,6 +24,11 @@
       </div>
     </div>
     <div class="header-actions">
+      <!-- Library button -->
+      <button class="btn btn-ghost" id="btn-library" title="Browse SPL Query Library (Ctrl+Shift+L)" data-open-modal="library">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h4a1 1 0 011 1v8a1 1 0 01-1 1H2V3z"/><path d="M9 3h5v10H9"/><path d="M7 6h2M7 9h2"/></svg>
+        Library
+      </button>
       <button class="btn btn-ghost" id="btn-save-preset" title="Save current query as preset" disabled>
         Save Preset
       </button>
@@ -293,6 +298,16 @@
 
         <div class="optimization-metrics" id="optimization-metrics">
           <!-- Populated by app.js -->
+        </div>
+
+        <!-- Library example results (shown only when a library query is loaded) -->
+        <div class="lib-inline-results hidden" id="lib-inline-results">
+          <div class="lib-inline-header">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 7h12M6 7v7"/></svg>
+            Example Results
+            <span class="lib-inline-badge" id="lib-inline-badge"></span>
+          </div>
+          <div class="lib-results-wrap" id="lib-inline-results-wrap"></div>
         </div>
 
         <div class="action-grid">
@@ -749,7 +764,7 @@
       </div>
       <div class="modal-head-text">
         <h2 class="modal-title" id="modal-ql-title">Query Library</h2>
-        <p class="modal-subtitle">Browse ready-to-use SPL templates by sector</p>
+        <p class="modal-subtitle">Browse 40+ ready-to-use SPL templates by sector</p>
       </div>
       <button class="modal-close" data-close-modal="query-library" aria-label="Close">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
@@ -767,10 +782,13 @@
     <!-- Sector tabs -->
     <div class="ql-tabs" id="ql-tabs">
       <button class="ql-tab active" data-sector="all">All <span class="ql-cnt" id="ql-cnt-all">—</span></button>
+      <button class="ql-tab" data-sector="soc">SOC / Security <span class="ql-cnt" id="ql-cnt-soc">—</span></button>
+      <button class="ql-tab" data-sector="itops">IT Operations <span class="ql-cnt" id="ql-cnt-itops">—</span></button>
       <button class="ql-tab" data-sector="network">Network <span class="ql-cnt" id="ql-cnt-network">—</span></button>
-      <button class="ql-tab" data-sector="server">Server <span class="ql-cnt" id="ql-cnt-server">—</span></button>
-      <button class="ql-tab" data-sector="datacenter">Data Center <span class="ql-cnt" id="ql-cnt-datacenter">—</span></button>
-      <button class="ql-tab" data-sector="applications">Applications <span class="ql-cnt" id="ql-cnt-applications">—</span></button>
+      <button class="ql-tab" data-sector="cloud">Cloud / DevOps <span class="ql-cnt" id="ql-cnt-cloud">—</span></button>
+      <button class="ql-tab" data-sector="financial">Financial <span class="ql-cnt" id="ql-cnt-financial">—</span></button>
+      <button class="ql-tab" data-sector="healthcare">Healthcare <span class="ql-cnt" id="ql-cnt-healthcare">—</span></button>
+      <button class="ql-tab" data-sector="data">Data Eng. <span class="ql-cnt" id="ql-cnt-data">—</span></button>
     </div>
 
     <!-- Disclaimer notice -->

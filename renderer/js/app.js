@@ -11,6 +11,7 @@ import {
   loadKnowledge, checkOllama, askOllama,
   analyzeQuery, getAutoSuggestions, searchKnowledge, resetOllamaCheck
 } from './ai-assistant.js';
+import { loadLibrary, searchLibrary, getQuery as getLibQuery } from './library.js';
 
 /* ============================================================
    STATE
@@ -30,7 +31,17 @@ const state = {
   customFields: {},   // map of fieldName → value string
 
   // Generated
-  currentSPL: ''
+  currentSPL: '',
+
+  // Library
+  lib: {
+    queries:      [],      // full list, loaded lazily
+    filtered:     [],      // current filtered view
+    activeId:     null,    // id of selected query
+    text:         '',
+    category:     'all',
+    popularity:   'all'
+  }
 };
 
 /* ============================================================
@@ -622,6 +633,10 @@ function doReset() {
   if (copyBtn) copyBtn.disabled = true;
   if (saveBtn) saveBtn.disabled = true;
 
+  // Hide library inline results
+  qs('#lib-inline-results')?.classList.add('hidden');
+  state.lib.activeId = null;
+
   renderCategoryCards();
   renderSidebar();
   goToStep(1);
@@ -1150,18 +1165,24 @@ function initFAQ() {
    ============================================================ */
 
 const QL_SECTORS = [
-  { key: 'all',          label: 'All',          color: '#9ca3af' },
-  { key: 'network',      label: 'Network',      color: '#3b82f6' },
-  { key: 'server',       label: 'Server',       color: '#10b981' },
-  { key: 'datacenter',   label: 'Data Center',  color: '#f59e0b' },
-  { key: 'applications', label: 'Applications', color: '#a78bfa' },
+  { key: 'all',        label: 'All',            color: '#9ca3af' },
+  { key: 'soc',        label: 'SOC / Security', color: '#ef4444' },
+  { key: 'itops',      label: 'IT Operations',  color: '#3b82f6' },
+  { key: 'network',    label: 'Network',         color: '#06b6d4' },
+  { key: 'cloud',      label: 'Cloud / DevOps',  color: '#8b5cf6' },
+  { key: 'financial',  label: 'Financial',        color: '#10b981' },
+  { key: 'healthcare', label: 'Healthcare',       color: '#f59e0b' },
+  { key: 'data',       label: 'Data Eng.',        color: '#ec4899' },
 ];
 
 const QL_SECTOR_LABELS = {
-  network:      'Network Operations',
-  server:       'Server Operations',
-  datacenter:   'Data Center',
-  applications: 'Applications',
+  soc:        'SOC / Security',
+  itops:      'IT Operations',
+  network:    'Network',
+  cloud:      'Cloud / DevOps',
+  financial:  'Financial',
+  healthcare: 'Healthcare',
+  data:       'Data Engineering',
 };
 
 // Parse index= and sourcetype= out of raw SPL text
@@ -1181,9 +1202,10 @@ function renderQL(templates, sector, query) {
   if (query) {
     const q = query.toLowerCase();
     filtered = filtered.filter(t =>
-      t.name.toLowerCase().includes(q) ||
-      t.description.toLowerCase().includes(q) ||
-      t.spl.toLowerCase().includes(q)
+      (t.title ?? '').toLowerCase().includes(q) ||
+      (t.description ?? '').toLowerCase().includes(q) ||
+      (t.spl ?? '').toLowerCase().includes(q) ||
+      (t.tags ?? []).some(tag => tag.toLowerCase().includes(q))
     );
   }
 
@@ -1196,7 +1218,7 @@ function renderQL(templates, sector, query) {
   }
 
   // Group by category (preserving natural order)
-  const ORDER = ['network', 'server', 'datacenter', 'applications'];
+  const ORDER = ['soc', 'itops', 'network', 'cloud', 'financial', 'healthcare', 'data'];
   const groups = {};
   filtered.forEach(t => { (groups[t.category] = groups[t.category] ?? []).push(t); });
   const orderedGroups = ORDER.filter(c => groups[c]).map(c => [c, groups[c]]);
@@ -1210,19 +1232,19 @@ function renderQL(templates, sector, query) {
       <span class="ql-sector-count">${items.length}</span>
     </div>
     ${items.map(t => {
-      const { idx, st } = parseQLMeta(t.spl);
+      const { idx, st } = parseQLMeta(t.spl ?? '');
       return `
         <div class="ql-card" data-id="${escapeHtml(t.id)}">
           <div class="ql-card-header">
             <svg class="ql-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" width="13" height="13" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>
-            <span class="ql-card-title">${escapeHtml(t.name)}</span>
+            <span class="ql-card-title">${escapeHtml(t.title ?? t.name ?? '')}</span>
           </div>
           <div class="ql-card-meta">
             <span class="ql-meta-chip"><span class="ql-meta-label">index</span>&nbsp;<span class="ql-meta-value">${escapeHtml(idx)}</span></span>
             <span class="ql-meta-chip"><span class="ql-meta-label">sourcetype</span>&nbsp;<span class="ql-meta-value">${escapeHtml(st)}</span></span>
           </div>
-          <div class="ql-card-desc">${escapeHtml(t.description)}</div>
-          <pre class="ql-card-spl" data-raw="${escapeHtml(t.spl)}">${escapeHtml(t.spl)}</pre>
+          <div class="ql-card-desc">${escapeHtml(t.description ?? '')}</div>
+          <pre class="ql-card-spl" data-raw="${escapeHtml(t.spl ?? '')}">${escapeHtml(t.spl ?? '')}</pre>
           <div class="ql-card-actions">
             <button class="btn btn-secondary ql-btn-copy" style="font-size:11.5px;padding:5px 14px">Copy SPL</button>
             <button class="btn btn-primary ql-btn-load" style="font-size:11.5px;padding:5px 14px">Load into Wizard</button>
@@ -1275,8 +1297,7 @@ function renderQL(templates, sector, query) {
 }
 
 async function initQueryLibrary() {
-  const kb = await loadKnowledge();
-  const templates = kb.query_templates ?? [];
+  const { queries: templates } = await loadLibrary();
 
   // Update sidebar count badge
   const countEl = qs('#ql-template-count');
@@ -1326,6 +1347,7 @@ async function initQueryLibrary() {
     observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
   }
 }
+
 
 /* ============================================================
    INIT
@@ -1409,6 +1431,7 @@ function init() {
       const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl && e.shiftKey && e.key === 'C') { e.preventDefault(); doCopy(); }
       if (ctrl && e.shiftKey && e.key === 'N') { e.preventDefault(); doReset(); }
+      if (ctrl && e.shiftKey && e.key === 'L') { e.preventDefault(); openModal('query-library'); }
       if (e.key === 'Escape') qsa('.toast').forEach(t => t.click());
     });
 
