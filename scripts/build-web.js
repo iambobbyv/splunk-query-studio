@@ -66,6 +66,10 @@ cpDir(path.join(ROOT, 'renderer'),
 cp(path.join(ROOT, 'assets', 'spl-knowledge.json'),
    path.join(WWW,  'assets', 'spl-knowledge.json'));
 
+// SPL Query Library — 40 curated queries (fetched by renderer/js/library.js)
+cp(path.join(ROOT, 'assets', 'spl-library.json'),
+   path.join(WWW,  'assets', 'spl-library.json'));
+
 /* ── Report ──────────────────────────────────────────────────────────────── */
 console.log(`✓ www/  →  ${countFiles(WWW)} files ready for Capacitor`);
 console.log('  Next:  npx cap sync  (on macOS with Xcode + CocoaPods)');
