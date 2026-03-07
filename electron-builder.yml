@@ -14,6 +14,7 @@ files:
   - package.json
   - renderer/**/*
   - assets/spl-knowledge.json
+  - assets/spl-library.json
 
 # Windows builds: NSIS installer + standalone portable
 win:
