@@ -53,6 +53,10 @@
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 8c0-1.5 2-1.5 2-3a2 2 0 10-4 0"/><circle cx="8" cy="11.5" r="0.5" fill="currentColor" stroke="none"/></svg>
             FAQ &amp; Help
           </button>
+          <button class="dropdown-item" data-open-modal="query-library">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h10a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M5.5 6.5h5M5.5 9h3"/></svg>
+            Query Library
+          </button>
           <button class="dropdown-item" data-open-modal="feedback">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 2V4a1 1 0 011-1z"/></svg>
             Send Feedback
@@ -80,6 +84,15 @@
       </div>
       <div class="category-list" id="sidebar-category-list"></div>
     </div>
+    <!-- Query Library nav button -->
+    <div class="sidebar-section">
+      <button class="sidebar-ql-btn" data-open-modal="query-library" id="btn-query-library">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M3 3h10a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M5.5 6.5h5M5.5 9h3"/></svg>
+        Query Library
+        <span class="sidebar-ql-count" id="ql-template-count">—</span>
+      </button>
+    </div>
+
     <!-- Sidebar footer: links -->
     <div class="sidebar-footer">
       <button class="sidebar-footer-link" data-open-modal="about">About Splunk Query Studio</button>
@@ -718,11 +731,61 @@
 
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" data-href="https://sqs.souriapps.net/faq" data-external>
+      <button class="btn btn-ghost" data-href="https://sqs.souriapps.net/faq.html" data-external>
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/><path d="M10 2h4v4"/><path d="M8.5 7.5L14 2"/></svg>
         Full FAQ Online
       </button>
       <button class="btn btn-primary" data-close-modal="faq">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Query Library -->
+<div class="modal-overlay" id="modal-query-library" aria-hidden="true" role="dialog" aria-labelledby="modal-ql-title">
+  <div class="modal-box modal-box-wide ql-modal-box">
+    <div class="modal-head">
+      <div class="modal-head-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h10a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M5.5 6.5h5M5.5 9h3"/></svg>
+      </div>
+      <div class="modal-head-text">
+        <h2 class="modal-title" id="modal-ql-title">Query Library</h2>
+        <p class="modal-subtitle">Browse ready-to-use SPL templates by sector</p>
+      </div>
+      <button class="modal-close" data-close-modal="query-library" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+
+    <!-- Search bar -->
+    <div class="ql-search-wrap">
+      <div class="ql-search-inner">
+        <svg class="ql-search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L13.5 13.5"/></svg>
+        <input type="text" id="ql-search" class="ql-search-input" placeholder="Search by name, description, or SPL…" autocomplete="off" spellcheck="false" />
+      </div>
+    </div>
+
+    <!-- Sector tabs -->
+    <div class="ql-tabs" id="ql-tabs">
+      <button class="ql-tab active" data-sector="all">All <span class="ql-cnt" id="ql-cnt-all">—</span></button>
+      <button class="ql-tab" data-sector="network">Network <span class="ql-cnt" id="ql-cnt-network">—</span></button>
+      <button class="ql-tab" data-sector="server">Server <span class="ql-cnt" id="ql-cnt-server">—</span></button>
+      <button class="ql-tab" data-sector="datacenter">Data Center <span class="ql-cnt" id="ql-cnt-datacenter">—</span></button>
+      <button class="ql-tab" data-sector="applications">Applications <span class="ql-cnt" id="ql-cnt-applications">—</span></button>
+    </div>
+
+    <!-- Disclaimer notice -->
+    <div class="ql-notice">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="flex-shrink:0;margin-top:1px"><path d="M8 2l6 12H2L8 2z"/><path d="M8 7v3"/><circle cx="8" cy="12" r="0.5" fill="currentColor" stroke="none"/></svg>
+      <span>Templates are starting points — always verify the <code>index</code>, <code>sourcetype</code>, field names, and time range match your Splunk environment before running in production.</span>
+    </div>
+
+    <!-- Template cards body -->
+    <div class="ql-modal-body" id="ql-modal-body">
+      <!-- Populated by app.js initQueryLibrary() -->
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" data-close-modal="query-library">Done</button>
     </div>
   </div>
 </div>

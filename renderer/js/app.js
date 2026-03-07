@@ -1146,6 +1146,188 @@ function initFAQ() {
 }
 
 /* ============================================================
+   QUERY LIBRARY
+   ============================================================ */
+
+const QL_SECTORS = [
+  { key: 'all',          label: 'All',          color: '#9ca3af' },
+  { key: 'network',      label: 'Network',      color: '#3b82f6' },
+  { key: 'server',       label: 'Server',       color: '#10b981' },
+  { key: 'datacenter',   label: 'Data Center',  color: '#f59e0b' },
+  { key: 'applications', label: 'Applications', color: '#a78bfa' },
+];
+
+const QL_SECTOR_LABELS = {
+  network:      'Network Operations',
+  server:       'Server Operations',
+  datacenter:   'Data Center',
+  applications: 'Applications',
+};
+
+// Parse index= and sourcetype= out of raw SPL text
+function parseQLMeta(spl) {
+  const idx = (spl.match(/\bindex=([\S]+)/i)?.[1] ?? '—').split(/[\s\n]/)[0];
+  const st  = (spl.match(/\bsourcetype=("?[^"\s\n]+"?)/i)?.[1] ?? '—').replace(/"/g, '').split(/[\s\n]/)[0];
+  return { idx, st };
+}
+
+function renderQL(templates, sector, query) {
+  // Filter by sector
+  let filtered = sector === 'all'
+    ? templates
+    : templates.filter(t => t.category === sector);
+
+  // Filter by search query
+  if (query) {
+    const q = query.toLowerCase();
+    filtered = filtered.filter(t =>
+      t.name.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q) ||
+      t.spl.toLowerCase().includes(q)
+    );
+  }
+
+  const body = qs('#ql-modal-body');
+  if (!body) return;
+
+  if (!filtered.length) {
+    body.innerHTML = '<div class="ql-empty">No templates match your search.</div>';
+    return;
+  }
+
+  // Group by category (preserving natural order)
+  const ORDER = ['network', 'server', 'datacenter', 'applications'];
+  const groups = {};
+  filtered.forEach(t => { (groups[t.category] = groups[t.category] ?? []).push(t); });
+  const orderedGroups = ORDER.filter(c => groups[c]).map(c => [c, groups[c]]);
+
+  const sectorColor = Object.fromEntries(QL_SECTORS.map(s => [s.key, s.color]));
+
+  body.innerHTML = orderedGroups.map(([cat, items]) => `
+    <div class="ql-sector-heading">
+      <span class="ql-sector-dot" style="background:${escapeHtml(sectorColor[cat] ?? '#6b7280')}"></span>
+      ${escapeHtml(QL_SECTOR_LABELS[cat] ?? cat)}
+      <span class="ql-sector-count">${items.length}</span>
+    </div>
+    ${items.map(t => {
+      const { idx, st } = parseQLMeta(t.spl);
+      return `
+        <div class="ql-card" data-id="${escapeHtml(t.id)}">
+          <div class="ql-card-header">
+            <svg class="ql-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" width="13" height="13" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+            <span class="ql-card-title">${escapeHtml(t.name)}</span>
+          </div>
+          <div class="ql-card-meta">
+            <span class="ql-meta-chip"><span class="ql-meta-label">index</span>&nbsp;<span class="ql-meta-value">${escapeHtml(idx)}</span></span>
+            <span class="ql-meta-chip"><span class="ql-meta-label">sourcetype</span>&nbsp;<span class="ql-meta-value">${escapeHtml(st)}</span></span>
+          </div>
+          <div class="ql-card-desc">${escapeHtml(t.description)}</div>
+          <pre class="ql-card-spl" data-raw="${escapeHtml(t.spl)}">${escapeHtml(t.spl)}</pre>
+          <div class="ql-card-actions">
+            <button class="btn btn-secondary ql-btn-copy" style="font-size:11.5px;padding:5px 14px">Copy SPL</button>
+            <button class="btn btn-primary ql-btn-load" style="font-size:11.5px;padding:5px 14px">Load into Wizard</button>
+          </div>
+        </div>`;
+    }).join('')}
+  `).join('');
+
+  // Wire card interactions
+  qsa('.ql-card', body).forEach(card => {
+    // Expand/collapse on header click (accordion — one open at a time)
+    card.querySelector('.ql-card-header').addEventListener('click', () => {
+      const wasOpen = card.classList.contains('open');
+      qsa('.ql-card', body).forEach(c => c.classList.remove('open'));
+      if (!wasOpen) card.classList.add('open');
+    });
+
+    // Copy SPL
+    card.querySelector('.ql-btn-copy').addEventListener('click', async e => {
+      e.stopPropagation();
+      const spl = card.querySelector('.ql-card-spl')?.dataset.raw ?? '';
+      try {
+        if (window.api?.copyToClipboard) await window.api.copyToClipboard(spl);
+        else await navigator.clipboard.writeText(spl);
+        showToast('Copied to clipboard!', 'success');
+      } catch { showToast('Copy failed', 'error'); }
+    });
+
+    // Load into Wizard — shows template on Step 4
+    card.querySelector('.ql-btn-load').addEventListener('click', e => {
+      e.stopPropagation();
+      const spl = card.querySelector('.ql-card-spl')?.dataset.raw ?? '';
+      if (!spl) return;
+      closeModal('query-library');
+      // Ensure Step 4 is reachable
+      state.maxReached = Math.max(state.maxReached, 4);
+      goToStep(4); // calls renderResult() internally — we override right after
+      const output = qs('#spl-output');
+      if (output) {
+        output.innerHTML = highlight(spl);
+        output.dataset.raw = spl;
+      }
+      state.currentSPL = spl;
+      // Enable header buttons
+      qs('#btn-copy')?.removeAttribute('disabled');
+      qs('#btn-save-preset')?.removeAttribute('disabled');
+      showToast('Template loaded — verify index, sourcetype & fields before running', 'info');
+    });
+  });
+}
+
+async function initQueryLibrary() {
+  const kb = await loadKnowledge();
+  const templates = kb.query_templates ?? [];
+
+  // Update sidebar count badge
+  const countEl = qs('#ql-template-count');
+  if (countEl) countEl.textContent = templates.length;
+
+  // Update tab count badges
+  QL_SECTORS.forEach(s => {
+    const el = qs(`#ql-cnt-${s.key}`);
+    if (!el) return;
+    const cnt = s.key === 'all'
+      ? templates.length
+      : templates.filter(t => t.category === s.key).length;
+    el.textContent = cnt;
+  });
+
+  // Initial render (all templates)
+  renderQL(templates, 'all', '');
+
+  // Sector tab switching
+  qs('#ql-tabs')?.addEventListener('click', e => {
+    const tab = e.target.closest('.ql-tab');
+    if (!tab) return;
+    qsa('.ql-tab', qs('#ql-tabs')).forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    renderQL(templates, tab.dataset.sector, qs('#ql-search')?.value?.trim() ?? '');
+  });
+
+  // Search filtering (debounced)
+  const onSearch = debounce(e => {
+    const sector = qs('.ql-tab.active')?.dataset.sector ?? 'all';
+    renderQL(templates, sector, e.target.value.trim());
+  }, 180);
+  qs('#ql-search')?.addEventListener('input', onSearch);
+
+  // Re-render fresh whenever the modal is opened (resets search + tabs)
+  const overlay = qs('#modal-query-library');
+  if (overlay) {
+    const observer = new MutationObserver(() => {
+      if (overlay.classList.contains('open')) {
+        const searchEl = qs('#ql-search');
+        if (searchEl) searchEl.value = '';
+        qsa('.ql-tab', qs('#ql-tabs')).forEach(t => t.classList.remove('active'));
+        qs('.ql-tab[data-sector="all"]')?.classList.add('active');
+        renderQL(templates, 'all', '');
+      }
+    });
+    observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+  }
+}
+
+/* ============================================================
    INIT
    ============================================================ */
 
@@ -1172,6 +1354,9 @@ function init() {
 
     /* ---- FAQ accordion ---- */
     initFAQ();
+
+    /* ---- Query Library ---- */
+    initQueryLibrary();
 
     /* ---- Mobile navigation ---- */
     initMobileNav();
