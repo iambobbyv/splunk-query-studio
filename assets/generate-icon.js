@@ -302,6 +302,42 @@ function pngEntry(rgba, size) {
   return { buf: data, size: data.length };
 }
 
+/* ── Flatten RGBA → RGB (composite transparent pixels onto bg colour) ────── */
+function flattenToRGB(rgba, size, bgR = 0x06, bgG = 0x0a, bgB = 0x2e) {
+  const rgb = new Uint8Array(size * size * 3);
+  for (let i = 0; i < size * size; i++) {
+    const sa = rgba[i*4+3] / 255;
+    rgb[i*3]   = Math.round(rgba[i*4]   * sa + bgR * (1 - sa));
+    rgb[i*3+1] = Math.round(rgba[i*4+1] * sa + bgG * (1 - sa));
+    rgb[i*3+2] = Math.round(rgba[i*4+2] * sa + bgB * (1 - sa));
+  }
+  return rgb;
+}
+
+/* ── RGB PNG encoder (no alpha — required for iOS App Store icons) ─────── */
+function rgbPngEntry(rgb, size) {
+  const rowLen = 1 + size * 3;
+  const raw    = Buffer.alloc(size * rowLen);
+  for (let y = 0; y < size; y++) {
+    raw[y * rowLen] = 0; // filter: None
+    for (let x = 0; x < size; x++) {
+      const s = (y * size + x) * 3;
+      const d = y * rowLen + 1 + x * 3;
+      raw[d] = rgb[s]; raw[d+1] = rgb[s+1]; raw[d+2] = rgb[s+2];
+    }
+  }
+  const compressed = zlib.deflateSync(raw, { level: 9 });
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8; ihdr[9] = 2; // colorType 2 = RGB (no alpha)
+  return Buffer.concat([
+    Buffer.from([137,80,78,71,13,10,26,10]),
+    pngChunk('IHDR', ihdr),
+    pngChunk('IDAT', compressed),
+    pngChunk('IEND', null),
+  ]);
+}
+
 /* ── Assemble multi-size ICO ─────────────────────────────────────────────── */
 function buildIco(sizes) {
   const entries = sizes.map(sz => {
@@ -371,21 +407,34 @@ function buildIcns() {
 }
 
 /* ── Main ────────────────────────────────────────────────────────────────── */
-const outIco  = path.join(__dirname, 'icon.ico');
-const outIcns = path.join(__dirname, 'icon.icns');
-const outPng  = path.join(__dirname, 'icon-1024.png');
+const outIco     = path.join(__dirname, 'icon.ico');
+const outIcns    = path.join(__dirname, 'icon.icns');
+const outPng     = path.join(__dirname, 'icon-1024.png');
+const outIosIcon = path.join(__dirname, '..', 'ios', 'App', 'App', 'Assets.xcassets',
+                             'AppIcon.appiconset', 'AppIcon-512@2x.png');
 
 // Windows ICO (16/32/48 BMP  +  256 PNG)
 fs.writeFileSync(outIco, buildIco([16, 32, 48, 256]));
-console.log(`✓ icon.ico      (${(fs.statSync(outIco).size / 1024).toFixed(1).padStart(5)} KB)  — 16/32/48 BMP · 256 PNG`);
+console.log(`✓ icon.ico           (${(fs.statSync(outIco).size / 1024).toFixed(1).padStart(5)} KB)  — 16/32/48 BMP · 256 PNG`);
 
 // macOS ICNS (7 PNG sizes: 16 → 1024)
 fs.writeFileSync(outIcns, buildIcns());
-console.log(`✓ icon.icns     (${(fs.statSync(outIcns).size / 1024).toFixed(1).padStart(5)} KB)  — 16/32/64/128/256/512/1024 PNG`);
+console.log(`✓ icon.icns          (${(fs.statSync(outIcns).size / 1024).toFixed(1).padStart(5)} KB)  — 16/32/64/128/256/512/1024 PNG`);
 
-// iOS / universal 1024×1024 PNG (source for @capacitor/assets)
-const { buf: png1024 } = pngEntry(drawSQSIcon(1024), 1024);
+// iOS / App Store source: 1024×1024 opaque RGB PNG (no alpha — Apple requirement)
+// Render RGBA then composite rounded-corner transparency onto the dark navy background
+const rgba1024 = drawSQSIcon(1024);
+const rgb1024  = flattenToRGB(rgba1024, 1024);   // transparent → #060a2e
+const png1024  = rgbPngEntry(rgb1024, 1024);
 fs.writeFileSync(outPng, png1024);
-console.log(`✓ icon-1024.png (${(fs.statSync(outPng).size / 1024).toFixed(1).padStart(5)} KB)  — iOS / App Store source icon`);
+console.log(`✓ icon-1024.png      (${(fs.statSync(outPng).size / 1024).toFixed(1).padStart(5)} KB)  — iOS / App Store source (opaque RGB)`);
+
+// iOS Xcode AppIcon.appiconset — same opaque image placed directly into the asset catalog
+if (fs.existsSync(path.dirname(outIosIcon))) {
+  fs.writeFileSync(outIosIcon, png1024);
+  console.log(`✓ AppIcon-512@2x.png (${(fs.statSync(outIosIcon).size / 1024).toFixed(1).padStart(5)} KB)  — Xcode asset catalog`);
+} else {
+  console.log(`  (skipped iOS appiconset — ios/ directory not found)`);
+}
 
 console.log('\n  Design: #060a2e → #1a3a9a gradient · S (white) · Q (cyan #7dd3fc) · S (white)\n');
