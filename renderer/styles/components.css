@@ -2713,3 +2713,205 @@ kbd {
     max-height: 250px;
   }
 }
+
+/* ============================================================
+   CUSTOM TEMPLATES — Import, editor panel, custom card styles
+   ============================================================ */
+
+/* Notice hides when Custom tab is active */
+#ql-notice.hidden { display: none; }
+
+/* ---- Import button in modal header ---- */
+.ql-import-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 5px 11px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+/* ---- "New" button in search row ---- */
+.ql-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ql-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 5px 11px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.ql-new-btn.hidden { display: none; }
+
+/* ---- Custom tab indicator ---- */
+.ql-tab-custom { font-style: normal; }
+.ql-tab-custom .ql-cnt {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+}
+
+/* ---- Custom badge on card header ---- */
+.ql-custom-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  flex-shrink: 0;
+}
+
+/* ---- Custom empty state ---- */
+.ql-custom-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: 48px var(--space-4) 40px;
+  text-align: center;
+}
+.ql-custom-empty p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.ql-custom-empty-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ---- Edit / Delete buttons on custom cards ---- */
+.ql-btn-edit,
+.ql-btn-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.ql-btn-edit:hover  { background: var(--accent-blue-dim); color: var(--accent-blue); }
+.ql-btn-delete:hover { background: rgba(239,68,68,.12); }
+
+/* ---- Modal box needs relative positioning for the editor overlay ---- */
+.ql-modal-box { position: relative; overflow: hidden; }
+
+/* ---- Editor panel — slides in over the modal body ---- */
+.ql-editor-panel {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: var(--surface-primary);
+  z-index: 20;
+  flex-direction: column;
+  border-radius: inherit;
+}
+.ql-editor-panel.open { display: flex; }
+
+.ql-editor-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.ql-editor-heading {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ql-editor-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ql-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+/* ---- Form fields inside the editor ---- */
+.ql-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ql-field label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+.ql-required { color: var(--accent-red, #ef4444); margin-left: 1px; }
+.ql-field-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 3px;
+}
+
+.ql-field input,
+.ql-field textarea {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: border-color var(--transition-fast);
+  width: 100%;
+  box-sizing: border-box;
+}
+.ql-field input:focus,
+.ql-field textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+
+/* SPL textarea uses monospace */
+.ql-spl-editor {
+  font-family: 'Consolas', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  resize: vertical;
+  min-height: 130px;
+}
+
+/* Mobile: full-width editor */
+@media (max-width: 768px) {
+  .ql-editor-body { padding: var(--space-3) var(--space-4); }
+  .ql-new-btn     { font-size: 11px; padding: 4px 9px; }
+  .ql-import-btn  { font-size: 11px; padding: 4px 9px; }
+}

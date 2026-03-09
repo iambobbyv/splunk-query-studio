@@ -12,6 +12,7 @@ import {
   analyzeQuery, getAutoSuggestions, searchKnowledge, resetOllamaCheck
 } from './ai-assistant.js';
 import { loadLibrary, searchLibrary, getQuery as getLibQuery } from './library.js';
+import { getCustomTemplates, saveCustomTemplate, deleteCustomTemplate, parseImport } from './custom-templates.js';
 
 /* ============================================================
    STATE
@@ -1173,6 +1174,7 @@ const QL_SECTORS = [
   { key: 'financial',  label: 'Financial',        color: '#10b981' },
   { key: 'healthcare', label: 'Healthcare',       color: '#f59e0b' },
   { key: 'data',       label: 'Data Eng.',        color: '#ec4899' },
+  { key: 'custom',     label: 'Custom',           color: '#a855f7' },
 ];
 
 const QL_SECTOR_LABELS = {
@@ -1183,6 +1185,7 @@ const QL_SECTOR_LABELS = {
   financial:  'Financial',
   healthcare: 'Healthcare',
   data:       'Data Engineering',
+  custom:     'My Custom Templates',
 };
 
 // Parse index= and sourcetype= out of raw SPL text
@@ -1192,7 +1195,7 @@ function parseQLMeta(spl) {
   return { idx, st };
 }
 
-function renderQL(templates, sector, query) {
+function renderQL(templates, sector, query, _refreshFn) {
   // Filter by sector
   let filtered = sector === 'all'
     ? templates
@@ -1212,13 +1215,29 @@ function renderQL(templates, sector, query) {
   const body = qs('#ql-modal-body');
   if (!body) return;
 
+  // Custom sector empty state
+  if (sector === 'custom' && !filtered.length) {
+    body.innerHTML = `
+      <div class="ql-custom-empty">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" width="36" height="36" style="opacity:.35"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M5 7h6M5 9.5h4"/></svg>
+        <p>No custom templates yet.</p>
+        <div class="ql-custom-empty-actions">
+          <button class="btn btn-primary btn-sm" id="btn-ql-empty-new">+ New Template</button>
+          <button class="btn btn-secondary btn-sm" id="btn-ql-empty-import">Import File</button>
+        </div>
+      </div>`;
+    qs('#btn-ql-empty-new')?.addEventListener('click', () => showQLEditor(null, _refreshFn));
+    qs('#btn-ql-empty-import')?.addEventListener('click', () => qs('#ql-file-input')?.click());
+    return;
+  }
+
   if (!filtered.length) {
     body.innerHTML = '<div class="ql-empty">No templates match your search.</div>';
     return;
   }
 
   // Group by category (preserving natural order)
-  const ORDER = ['soc', 'itops', 'network', 'cloud', 'financial', 'healthcare', 'data'];
+  const ORDER = ['soc', 'itops', 'network', 'cloud', 'financial', 'healthcare', 'data', 'custom'];
   const groups = {};
   filtered.forEach(t => { (groups[t.category] = groups[t.category] ?? []).push(t); });
   const orderedGroups = ORDER.filter(c => groups[c]).map(c => [c, groups[c]]);
@@ -1233,11 +1252,13 @@ function renderQL(templates, sector, query) {
     </div>
     ${items.map(t => {
       const { idx, st } = parseQLMeta(t.spl ?? '');
+      const isCustom = t.id?.startsWith('custom_');
       return `
-        <div class="ql-card" data-id="${escapeHtml(t.id)}">
+        <div class="ql-card${isCustom ? ' ql-card-custom' : ''}" data-id="${escapeHtml(t.id)}">
           <div class="ql-card-header">
             <svg class="ql-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" width="13" height="13" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg>
             <span class="ql-card-title">${escapeHtml(t.title ?? t.name ?? '')}</span>
+            ${isCustom ? `<span class="ql-custom-badge">Custom</span>` : ''}
           </div>
           <div class="ql-card-meta">
             <span class="ql-meta-chip"><span class="ql-meta-label">index</span>&nbsp;<span class="ql-meta-value">${escapeHtml(idx)}</span></span>
@@ -1248,6 +1269,13 @@ function renderQL(templates, sector, query) {
           <div class="ql-card-actions">
             <button class="btn btn-secondary ql-btn-copy" style="font-size:11.5px;padding:5px 14px">Copy SPL</button>
             <button class="btn btn-primary ql-btn-load" style="font-size:11.5px;padding:5px 14px">Load into Wizard</button>
+            ${isCustom ? `
+            <button class="btn btn-ghost ql-btn-edit" data-id="${escapeHtml(t.id)}" style="font-size:11.5px;padding:5px 10px;margin-left:auto" title="Edit template">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M11.5 2.5l2 2L5 13l-3 .5.5-3z"/></svg>
+            </button>
+            <button class="btn btn-ghost ql-btn-delete" data-id="${escapeHtml(t.id)}" style="font-size:11.5px;padding:5px 10px;color:var(--accent-red,#ef4444)" title="Delete template">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M3 4h10M6 4V2.5h4V4M6 7v5M10 7v5M4.5 4l.5 9h6l.5-9"/></svg>
+            </button>` : ''}
           </div>
         </div>`;
     }).join('')}
@@ -1255,6 +1283,8 @@ function renderQL(templates, sector, query) {
 
   // Wire card interactions
   qsa('.ql-card', body).forEach(card => {
+    const id = card.dataset.id;
+
     // Expand/collapse on header click (accordion — one open at a time)
     card.querySelector('.ql-card-header').addEventListener('click', () => {
       const wasOpen = card.classList.contains('open');
@@ -1293,28 +1323,105 @@ function renderQL(templates, sector, query) {
       qs('#btn-save-preset')?.removeAttribute('disabled');
       showToast('Template loaded — verify index, sourcetype & fields before running', 'info');
     });
+
+    // Edit (custom only)
+    card.querySelector('.ql-btn-edit')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const all = getCustomTemplates();
+      const tmpl = all.find(t => t.id === id);
+      if (tmpl && _refreshFn) showQLEditor(tmpl, _refreshFn);
+    });
+
+    // Delete (custom only)
+    card.querySelector('.ql-btn-delete')?.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm('Delete this custom template? This cannot be undone.')) return;
+      deleteCustomTemplate(id);
+      if (_refreshFn) _refreshFn();
+      showToast('Template deleted', 'info');
+    });
   });
 }
 
-async function initQueryLibrary() {
-  const { queries: templates } = await loadLibrary();
+/* ---- Custom template editor panel ---- */
 
-  // Update sidebar count badge
-  const countEl = qs('#ql-template-count');
-  if (countEl) countEl.textContent = templates.length;
+function showQLEditor(template = null, onSave = null) {
+  const panel = qs('#ql-editor-panel');
+  if (!panel) return;
 
-  // Update tab count badges
-  QL_SECTORS.forEach(s => {
-    const el = qs(`#ql-cnt-${s.key}`);
-    if (!el) return;
-    const cnt = s.key === 'all'
-      ? templates.length
-      : templates.filter(t => t.category === s.key).length;
-    el.textContent = cnt;
+  // Set heading
+  qs('#ql-editor-heading').textContent = template ? 'Edit Template' : 'New Template';
+
+  // Pre-fill fields
+  qs('#qle-title').value       = template?.title       ?? '';
+  qs('#qle-desc').value        = template?.description  ?? '';
+  qs('#qle-spl').value         = template?.spl          ?? '';
+  qs('#qle-tags').value        = (template?.tags ?? []).join(', ');
+
+  // Show panel
+  panel.classList.add('open');
+  panel.setAttribute('aria-hidden', 'false');
+  qs('#qle-title').focus();
+
+  // Wire save
+  const saveBtn = qs('#btn-qle-save');
+  const newSave = saveBtn.cloneNode(true); // remove old listeners
+  saveBtn.parentNode.replaceChild(newSave, saveBtn);
+  newSave.addEventListener('click', () => {
+    const title = qs('#qle-title').value.trim();
+    const spl   = qs('#qle-spl').value.trim();
+    if (!title) { showToast('Title is required', 'warn'); qs('#qle-title').focus(); return; }
+    if (!spl)   { showToast('SPL query is required', 'warn'); qs('#qle-spl').focus(); return; }
+    const tags = qs('#qle-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+    saveCustomTemplate({ ...(template ?? {}), title, description: qs('#qle-desc').value.trim(), spl, tags });
+    hideQLEditor();
+    if (onSave) onSave();
+    showToast(template ? 'Template updated' : 'Template saved', 'success');
   });
+}
 
-  // Initial render (all templates)
-  renderQL(templates, 'all', '');
+function hideQLEditor() {
+  const panel = qs('#ql-editor-panel');
+  if (!panel) return;
+  panel.classList.remove('open');
+  panel.setAttribute('aria-hidden', 'true');
+}
+
+async function initQueryLibrary() {
+  const { queries: builtIn } = await loadLibrary();
+
+  // Live fn merges built-ins with up-to-date custom templates on each call
+  const allTemplates = () => [...builtIn, ...getCustomTemplates()];
+
+  // Helper: refresh counts + re-render with current tab/search state
+  function refreshQL() {
+    const sector = qs('.ql-tab.active')?.dataset.sector ?? 'all';
+    const text   = qs('#ql-search')?.value?.trim() ?? '';
+    updateQLCounts(allTemplates());
+    renderQL(allTemplates(), sector, text, refreshQL);
+    // Show/hide "New" button based on Custom tab
+    qs('#btn-ql-new')?.classList.toggle('hidden', sector !== 'custom');
+    // Hide notice on Custom tab (it's not relevant for custom templates)
+    qs('#ql-notice')?.classList.toggle('hidden', sector === 'custom');
+  }
+
+  function updateQLCounts(templates) {
+    // Sidebar badge
+    const countEl = qs('#ql-template-count');
+    if (countEl) countEl.textContent = templates.length;
+    // Tab count badges
+    QL_SECTORS.forEach(s => {
+      const el = qs(`#ql-cnt-${s.key}`);
+      if (!el) return;
+      el.textContent = s.key === 'all'
+        ? templates.length
+        : templates.filter(t => t.category === s.key).length;
+    });
+  }
+
+  // Initial render
+  updateQLCounts(allTemplates());
+  renderQL(allTemplates(), 'all', '', refreshQL);
 
   // Sector tab switching
   qs('#ql-tabs')?.addEventListener('click', e => {
@@ -1322,15 +1429,55 @@ async function initQueryLibrary() {
     if (!tab) return;
     qsa('.ql-tab', qs('#ql-tabs')).forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
-    renderQL(templates, tab.dataset.sector, qs('#ql-search')?.value?.trim() ?? '');
+    const sector = tab.dataset.sector;
+    renderQL(allTemplates(), sector, qs('#ql-search')?.value?.trim() ?? '', refreshQL);
+    // Show/hide "New" button
+    qs('#btn-ql-new')?.classList.toggle('hidden', sector !== 'custom');
+    // Hide/show disclaimer notice
+    qs('#ql-notice')?.classList.toggle('hidden', sector === 'custom');
   });
 
   // Search filtering (debounced)
   const onSearch = debounce(e => {
     const sector = qs('.ql-tab.active')?.dataset.sector ?? 'all';
-    renderQL(templates, sector, e.target.value.trim());
+    renderQL(allTemplates(), sector, e.target.value.trim(), refreshQL);
   }, 180);
   qs('#ql-search')?.addEventListener('input', onSearch);
+
+  // Import file button → trigger hidden file input
+  qs('#btn-ql-import')?.addEventListener('click', () => qs('#ql-file-input')?.click());
+
+  // File input change handler
+  qs('#ql-file-input')?.addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text   = await file.text();
+      const parsed = parseImport(text, file.name);
+      if (!parsed.length) {
+        showToast('No valid templates found in this file', 'warn');
+      } else {
+        parsed.forEach(t => saveCustomTemplate(t));
+        // Switch to Custom tab to show imported templates
+        qsa('.ql-tab', qs('#ql-tabs')).forEach(t => t.classList.remove('active'));
+        qs('.ql-tab[data-sector="custom"]')?.classList.add('active');
+        qs('#btn-ql-new')?.classList.remove('hidden');
+        qs('#ql-notice')?.classList.add('hidden');
+        refreshQL();
+        showToast(`Imported ${parsed.length} template${parsed.length > 1 ? 's' : ''}`, 'success');
+      }
+    } catch (err) {
+      showToast('Could not read file: ' + err.message, 'error');
+    }
+    e.target.value = ''; // reset so same file can be re-imported
+  });
+
+  // "New Template" button
+  qs('#btn-ql-new')?.addEventListener('click', () => showQLEditor(null, refreshQL));
+
+  // Editor back/cancel buttons
+  qs('#btn-qle-back')?.addEventListener('click', hideQLEditor);
+  qs('#btn-qle-cancel')?.addEventListener('click', hideQLEditor);
 
   // Re-render fresh whenever the modal is opened (resets search + tabs)
   const overlay = qs('#modal-query-library');
@@ -1341,7 +1488,11 @@ async function initQueryLibrary() {
         if (searchEl) searchEl.value = '';
         qsa('.ql-tab', qs('#ql-tabs')).forEach(t => t.classList.remove('active'));
         qs('.ql-tab[data-sector="all"]')?.classList.add('active');
-        renderQL(templates, 'all', '');
+        qs('#btn-ql-new')?.classList.add('hidden');
+        qs('#ql-notice')?.classList.remove('hidden');
+        hideQLEditor();
+        updateQLCounts(allTemplates());
+        renderQL(allTemplates(), 'all', '', refreshQL);
       }
     });
     observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });

@@ -766,6 +766,12 @@
         <h2 class="modal-title" id="modal-ql-title">Query Library</h2>
         <p class="modal-subtitle">Browse 40+ ready-to-use SPL templates by sector</p>
       </div>
+      <!-- Import file button -->
+      <button class="btn btn-ghost btn-sm ql-import-btn" id="btn-ql-import" title="Import JSON, text, or XML file">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M3 12h10"/></svg>
+        Import
+      </button>
+      <input type="file" id="ql-file-input" accept=".json,.txt,.xml,.spl,.log" style="display:none" />
       <button class="modal-close" data-close-modal="query-library" aria-label="Close">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
       </button>
@@ -777,6 +783,11 @@
         <svg class="ql-search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L13.5 13.5"/></svg>
         <input type="text" id="ql-search" class="ql-search-input" placeholder="Search by name, description, or SPL…" autocomplete="off" spellcheck="false" />
       </div>
+      <!-- New Template button: visible only when Custom tab is active -->
+      <button class="btn btn-primary btn-sm ql-new-btn hidden" id="btn-ql-new" title="Create a new custom template">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="12" height="12"><path d="M8 3v10M3 8h10"/></svg>
+        New
+      </button>
     </div>
 
     <!-- Sector tabs -->
@@ -789,10 +800,11 @@
       <button class="ql-tab" data-sector="financial">Financial <span class="ql-cnt" id="ql-cnt-financial">—</span></button>
       <button class="ql-tab" data-sector="healthcare">Healthcare <span class="ql-cnt" id="ql-cnt-healthcare">—</span></button>
       <button class="ql-tab" data-sector="data">Data Eng. <span class="ql-cnt" id="ql-cnt-data">—</span></button>
+      <button class="ql-tab ql-tab-custom" data-sector="custom">Custom <span class="ql-cnt" id="ql-cnt-custom">0</span></button>
     </div>
 
-    <!-- Disclaimer notice -->
-    <div class="ql-notice">
+    <!-- Disclaimer notice (hidden when Custom tab active) -->
+    <div class="ql-notice" id="ql-notice">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="flex-shrink:0;margin-top:1px"><path d="M8 2l6 12H2L8 2z"/><path d="M8 7v3"/><circle cx="8" cy="12" r="0.5" fill="currentColor" stroke="none"/></svg>
       <span>Templates are starting points — always verify the <code>index</code>, <code>sourcetype</code>, field names, and time range match your Splunk environment before running in production.</span>
     </div>
@@ -800,6 +812,39 @@
     <!-- Template cards body -->
     <div class="ql-modal-body" id="ql-modal-body">
       <!-- Populated by app.js initQueryLibrary() -->
+    </div>
+
+    <!-- Custom template editor panel (slides in over modal body) -->
+    <div class="ql-editor-panel" id="ql-editor-panel" aria-hidden="true">
+      <div class="ql-editor-head">
+        <button class="btn btn-ghost btn-sm" id="btn-qle-back" aria-label="Back to library">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M10 3L5 8l5 5"/></svg>
+          Back
+        </button>
+        <span class="ql-editor-heading" id="ql-editor-heading">New Template</span>
+      </div>
+      <div class="ql-editor-body">
+        <div class="ql-field">
+          <label for="qle-title">Title <span class="ql-required">*</span></label>
+          <input id="qle-title" type="text" placeholder="e.g. VPN Auth Failures by User" autocomplete="off" />
+        </div>
+        <div class="ql-field">
+          <label for="qle-desc">Description</label>
+          <textarea id="qle-desc" rows="2" placeholder="What does this query detect or report?"></textarea>
+        </div>
+        <div class="ql-field ql-field-spl">
+          <label for="qle-spl">SPL Query <span class="ql-required">*</span></label>
+          <textarea id="qle-spl" class="ql-spl-editor" rows="7" spellcheck="false" autocomplete="off" placeholder="index=... sourcetype=... earliest=-1h&#10;| stats count by src_ip&#10;| sort -count"></textarea>
+        </div>
+        <div class="ql-field">
+          <label for="qle-tags">Tags <span class="ql-field-hint">(comma-separated)</span></label>
+          <input id="qle-tags" type="text" placeholder="auth, vpn, windows" autocomplete="off" />
+        </div>
+      </div>
+      <div class="ql-editor-footer">
+        <button class="btn btn-secondary" id="btn-qle-cancel">Cancel</button>
+        <button class="btn btn-primary" id="btn-qle-save">Save Template</button>
+      </div>
     </div>
 
     <div class="modal-footer">
