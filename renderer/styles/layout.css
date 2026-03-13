@@ -9,8 +9,10 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .app-frame {
   height: 100vh;
   display: grid;
+  /* Header row grows to cover macOS title-bar safe area (Mac Catalyst)
+     env() falls back to 0px on Electron / plain desktop → no visual change */
   grid-template:
-    "header  header  header"  48px
+    "header  header  header"  calc(48px + env(safe-area-inset-top, 0px))
     "sidebar main    aside"   1fr
     / 240px  minmax(0, 1fr)   300px;
   overflow: hidden;
@@ -20,9 +22,14 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .app-frame > header {
   grid-area: header;
   display: flex;
-  align-items: center;
+  /* flex-end + 12px bottom padding keeps items visually centred in the
+     visible 48px band on every platform:
+       • Electron / plain desktop: env() = 0 → row = 48px, items at y=12–36, centre=24 ✓
+       • Mac Catalyst: env() ≈ 28px → row = 76px, items at y=40–64, centre=52 ✓
+       • iOS (overridden below 480px anyway): env() ≈ 44px → centre=68 ✓      */
+  align-items: flex-end;
   justify-content: space-between;
-  padding: 0 var(--space-6);
+  padding: env(safe-area-inset-top, 0px) var(--space-6) var(--space-3);
   background: var(--surface-secondary);
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
