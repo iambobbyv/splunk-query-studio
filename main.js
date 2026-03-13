@@ -40,7 +40,7 @@ function createMainWindow() {
   // Size the window to fit the screen — fallback to 1600×900 if screen API not ready
   const workArea = screen.getPrimaryDisplay?.()?.workAreaSize ?? { width: 1600, height: 900 };
   const win = new BrowserWindow({
-    title:     'Build Smarter SPL Queries Faster.',
+    title:     'SQS by SouriApps',
     width:     Math.min(1600, workArea.width),
     height:    Math.min(960,  workArea.height),
     minWidth:  900,
