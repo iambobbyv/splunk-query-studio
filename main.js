@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, clipboard, shell, screen } = require('electron');
 const path = require('path');
 
-const SPLASH_DURATION = 10_000; // 10 seconds
+const SPLASH_DURATION = 1_500;  // 1.5 seconds
 const DEV = !app.isPackaged;    // true when running via `npm start`
 
 // Icon paths
