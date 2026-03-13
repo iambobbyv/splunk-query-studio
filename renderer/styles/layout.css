@@ -47,10 +47,6 @@ html, body { overflow-x: hidden; max-width: 100%; }
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
 }
 
 .logo-icon {
@@ -66,6 +62,18 @@ html, body { overflow-x: hidden; max-width: 100%; }
   color: #fff;
   letter-spacing: 0;
   flex-shrink: 0;
+}
+
+.logo-text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  user-select: none;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-emerald));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-actions {
@@ -540,8 +548,9 @@ body.aside-open .mobile-backdrop {
   .mobile-menu-btn     { display: flex; }
   .mobile-history-btn  { display: flex; }
 
-  /* Hide centred title on mobile — too narrow, would overlap buttons */
+  /* Hide text labels on mobile — too narrow, would overlap buttons */
   .header-title { display: none; }
+  .logo-text    { display: none; }
 
   /* Hide Save Preset from header on mobile (accessible on step 4) */
   #btn-save-preset { display: none; }
