@@ -74,6 +74,26 @@ html, body { overflow-x: hidden; max-width: 100%; }
   gap: var(--space-2);
 }
 
+/* Centred app title — absolutely positioned so it stays truly centred
+   regardless of the asymmetric widths of .header-start and .header-actions */
+.header-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: var(--space-3);           /* mirrors header padding-bottom for alignment */
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  /* Gradient text matching the logo-icon gradient */
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-emerald));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 /* ----- Sidebar ----- */
 .sidebar {
   grid-area: sidebar;
@@ -520,8 +540,8 @@ body.aside-open .mobile-backdrop {
   .mobile-menu-btn     { display: flex; }
   .mobile-history-btn  { display: flex; }
 
-  /* Hide logo text on mobile — keep icon only */
-  .logo-text { display: none; }
+  /* Hide centred title on mobile — too narrow, would overlap buttons */
+  .header-title { display: none; }
 
   /* Hide Save Preset from header on mobile (accessible on step 4) */
   #btn-save-preset { display: none; }
