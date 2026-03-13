@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, clipboard, shell, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, clipboard, shell, screen, Menu } = require('electron');
 const path = require('path');
 
 const SPLASH_DURATION = 2_500;  // 2.5 seconds
@@ -76,12 +76,84 @@ function createMainWindow() {
   return win;
 }
 
+/* ── Native application menu ────────────────────────────────────────────── */
+function buildMenu() {
+  const SUPPORT_URL  = 'https://souriapps.net/support';
+  const FEEDBACK_URL = 'mailto:feedback@souriapps.net';
+  const WEBSITE_URL  = 'https://souriapps.net';
+
+  const template = [
+    // ── macOS app menu (first item = app name) ──────────────────────────
+    ...(process.platform === 'darwin' ? [{
+      label: app.getName(),
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    }] : []),
+
+    // ── Edit ────────────────────────────────────────────────────────────
+    { role: 'editMenu' },
+
+    // ── View ────────────────────────────────────────────────────────────
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+        ...(DEV ? [{ type: 'separator' }, { role: 'toggleDevTools' }] : []),
+      ],
+    },
+
+    // ── Window ──────────────────────────────────────────────────────────
+    { role: 'windowMenu' },
+
+    // ── Help ────────────────────────────────────────────────────────────
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'FAQ & Support',
+          accelerator: process.platform === 'darwin' ? 'Cmd+Shift+/' : 'F1',
+          click: () => shell.openExternal(SUPPORT_URL),
+        },
+        { type: 'separator' },
+        {
+          label: 'Send Feedback…',
+          click: () => shell.openExternal(FEEDBACK_URL),
+        },
+        {
+          label: 'Visit SouriApps.net',
+          click: () => shell.openExternal(WEBSITE_URL),
+        },
+      ],
+    },
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 /* ── IPC handlers ───────────────────────────────────────────────────────── */
 ipcMain.handle('clipboard:write', (_, text) => clipboard.writeText(text));
 ipcMain.handle('shell:open',      (_, url)  => shell.openExternal(url));
 
 /* ── App lifecycle ──────────────────────────────────────────────────────── */
 app.whenReady().then(() => {
+  buildMenu();
+
   // Override Dock icon in dev mode (packaged builds use the electron-builder icon config)
   if (DEV && process.platform === 'darwin') {
     app.dock.setIcon(ICON_PNG);
