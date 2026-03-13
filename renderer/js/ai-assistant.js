@@ -42,8 +42,18 @@ export function resetOllamaCheck() {
 
 export async function checkOllama() {
   if (ollamaAvailable !== null) return { available: ollamaAvailable, model: ollamaModel };
+
+  // On a physical iOS device, localhost refers to the device itself — Ollama
+  // runs on the Mac, not the phone. Skip the check entirely on iOS.
+  const platform = window.Capacitor?.getPlatform?.() ?? 'web';
+  if (platform === 'ios') {
+    ollamaAvailable = false;
+    return { available: false, model: null };
+  }
+
   try {
-    const res = await fetch(`${OLLAMA_BASE}/api/tags`, { signal: AbortSignal.timeout(1500) });
+    // 3 s timeout — gives Ollama time to respond after a cold start
+    const res = await fetch(`${OLLAMA_BASE}/api/tags`, { signal: AbortSignal.timeout(3000) });
     if (!res.ok) throw new Error('not ok');
     const data = await res.json();
     const models = (data.models || []).map(m => m.name);
