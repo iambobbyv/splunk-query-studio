@@ -397,7 +397,7 @@ function drawOrbitCanvas(t) {
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    MAIN ANIMATION LOOP
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-const DURATION  = 10000; // 10 seconds total
+const DURATION  = 2500; // must match SPLASH_DURATION in main.js
 const startTime = performance.now();
 
 function tick(ts) {
@@ -407,14 +407,14 @@ function tick(ts) {
   drawStarfield(t);
   drawOrbitCanvas(t);
 
-  // Progress bar
+  // Progress bar fills fully over 2.5 s
   const pct = Math.min(100, (elapsed / DURATION) * 100);
   document.getElementById('progressBar').style.width = pct + '%';
 
   if (elapsed < DURATION - 900) {
     requestAnimationFrame(tick);
   } else {
-    // Fade out — main.js closes the window at the 10s mark
+    // Fade out — main.js destroys the window at the 2.5 s mark
     document.body.classList.add('fade-out');
   }
 }
