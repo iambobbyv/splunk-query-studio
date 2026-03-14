@@ -1,45 +1,79 @@
 {
+  "_readme": "Single source of truth for App Store Connect. Paste values directly into ASC fields. Updated 2026-03.",
+
   "ios": {
     "bundleId": "com.souriapps.splunkquerystudio",
     "appName": "Splunk Query Studio",
     "subtitle": "SPL Query Builder for Splunk",
-    "category": "Developer Tools",
-    "secondaryCategory": "Utilities",
+    "primaryLocale": "en-US",
     "version": "1.0.0",
     "buildNumber": "1",
+    "releaseType": "manual",
+    "phasedRelease": false,
+
+    "category": "Developer Tools",
+    "secondaryCategory": "Utilities",
+    "primaryCategoryASC": "DEVELOPER_TOOLS",
+    "secondaryCategoryASC": "UTILITIES",
+
     "minimumOSVersion": "16.0",
     "supportedDevices": ["iPhone", "iPad"],
-    "description": "Splunk Query Studio is the SPL query builder for Splunk professionals who need to work fast. Whether you're in the middle of an incident response, running threat hunts, or just tired of rewriting the same queries from scratch — Studio puts every search pattern one tap away.\n\nBUILD QUERIES INSTANTLY\nChoose a data source, select a query type, fill in your parameters, and get a complete, production-ready SPL query — syntax-highlighted and ready to paste into Splunk.\n\n20 DATA SOURCE PROFILES\n• Network: Cisco IOS/NX-OS, Cisco ISE, Cisco Firepower/FTD, Cisco* (wildcard), Palo Alto Networks, SolarWinds, Generic Firewall\n• Server: Linux Syslog, Windows WEC, Windows Sysmon, CrowdStrike\n• Data Center: VMware ESXi, VMware vCenter, NetApp, Pure Storage\n• Applications: Apache HTTP, Microsoft IIS, Nginx, Okta, Microsoft 365\n\nQUERY HISTORY & PRESETS\nNever rewrite the same query twice. Studio keeps your last 75 searches and lets you save unlimited named presets for one-tap recall.\n\nDESIGNED FOR THE FIELD\nA distraction-free dark interface built for long shifts. Syntax highlighting with zero overlap artifacts. Copy any query to clipboard directly from the app.\n\nPRIVACY FIRST\nSplunk Query Studio works entirely on-device. No telemetry, no accounts, no network calls. Your queries never leave your device.",
-    "keywords": "splunk,SPL,SIEM,SOC,query,security,analyst,log,network,threat,hunt,search,cisco,palo alto",
-    "promotionalText": "Generate production-ready Splunk SPL queries for 20+ data sources in seconds. Built for SOC analysts, threat hunters, and IT teams.",
+
+    "description": "Splunk Query Studio is the SPL query builder for Splunk professionals who need to work fast. Whether you're in the middle of an incident response, running threat hunts, or just tired of rewriting the same queries from scratch — Studio puts every search pattern one tap away.\n\nBUILD QUERIES INSTANTLY\nChoose a data source, select a query type, fill in your parameters, and get a complete, production-ready SPL query — syntax-highlighted and ready to paste into Splunk.\n\n20+ DATA SOURCE PROFILES\n• Network: Cisco IOS/NX-OS, Cisco ISE, Cisco Firepower/FTD, Palo Alto Networks, SolarWinds, Generic Firewall\n• Server: Linux Syslog, Windows WEC, Windows Sysmon, CrowdStrike\n• Data Center: VMware ESXi, VMware vCenter, NetApp, Pure Storage\n• Applications: Apache HTTP, Microsoft IIS, Nginx, Okta, Microsoft 365\n\nQUERY LIBRARY\n40 pre-built, production-tested SPL templates covering the most common SOC and IT operations use cases. Browse, filter, and copy in one tap.\n\nQUERY HISTORY & PRESETS\nNever rewrite the same query twice. Studio keeps your last 75 searches and lets you save unlimited named presets for one-tap recall.\n\nAI-ASSISTED QUERY SUGGESTIONS\nOptional on-device AI via Ollama (macOS) surfaces context-aware SPL improvements and command explanations without sending any data off your device.\n\nDESIGNED FOR THE FIELD\nA distraction-free dark interface built for long shifts. Syntax highlighting, copy-to-clipboard, and a clean 4-step wizard mean fewer mistakes under pressure.\n\nPRIVACY FIRST\nSplunk Query Studio works entirely on-device. No telemetry, no accounts, no network calls except optional local Ollama. Your queries never leave your device.",
+
+    "promotionalText": "Generate production-ready Splunk SPL queries for 20+ data sources in seconds. Built for SOC analysts, threat hunters, and IT operations teams.",
+
+    "keywords": "splunk,SPL,SIEM,SOC,query,security,analyst,log,network,threat,hunt,cisco,palo alto,search",
+
+    "whatsNew": "Version 1.0.0 — Initial Release\n\n• 4-step guided SPL query wizard\n• 20+ data source profiles: Network, Server, Data Center, Applications\n• 40-entry query library with one-tap copy\n• Query history (75 entries) and unlimited saved presets\n• Syntax-highlighted SPL output\n• Full iPhone and iPad support with adaptive dark interface",
+
     "supportURL": "https://souriapps.net/support",
     "marketingURL": "https://souriapps.net",
     "privacyPolicyURL": "https://souriapps.net/privacy",
-    "whatsNew": "Version 1.0.0\n\n• 4-step guided query wizard\n• 20 data source profiles across Network, Server, Data Center, and Applications\n• Live SPL preview with syntax highlighting\n• Query history (75 entries) and saved presets\n• Full iPhone and iPad support with dark interface",
-    "reviewNotes": "Splunk Query Studio is a standalone SPL query builder. It does not connect to any Splunk instance — it generates queries locally based on user-selected parameters. No Splunk login, API key, or backend is required to test the app. Open the app, select a domain (e.g. Network), choose a data source (e.g. Palo Alto Networks), pick a query type (e.g. Traffic Analysis), fill in optional field filters, and the complete SPL query is generated instantly in the output panel.",
+
+    "appReviewNotes": "Splunk Query Studio is a standalone, offline SPL query builder. It does NOT connect to any Splunk instance — queries are generated locally from user-selected parameters.\n\nNo Splunk login, API key, or backend is required to test the app.\n\nTo test core functionality:\n1. Open the app — the 4-step wizard loads immediately\n2. Step 1: Select a domain (e.g. Network Operations)\n3. Step 2: Choose a data source (e.g. Palo Alto Networks)\n4. Step 3: Select a query type and fill optional field filters\n5. Step 4: The complete, syntax-highlighted SPL query appears — tap Copy SPL\n\nQuery Library: tap the Library button (top right) to browse 40 pre-built templates.\nPresets: build a query, tap Save Preset, name it — it appears in the presets list.",
+
     "reviewCredentials": {
       "required": false,
       "notes": "No login required. The app opens directly to the query wizard."
     },
+
     "contentRating": "4+",
-    "pricingTier": "Free",
+    "price": "Free",
+    "pricingTier": "0",
     "inAppPurchases": [],
+
     "ageRating": {
-      "alcoholTobaccoDrugs": "none",
-      "contests": "none",
-      "gambling": "none",
-      "horror": "none",
-      "matureContent": "none",
-      "medicalInfo": "none",
-      "profanity": "none",
-      "sexualContent": "none",
-      "violence": "none",
-      "unrestrictedWebAccess": false
+      "alcoholTobaccoDrugs": "NONE",
+      "contests": "NONE",
+      "gambling": "NONE",
+      "horror": "NONE",
+      "matureContent": "NONE",
+      "medicalInfo": "NONE",
+      "profanity": "NONE",
+      "sexualContent": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "violence": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlonged": "NONE",
+      "unrestrictedWebAccess": false,
+      "gamblingSimulated": "NONE"
     },
+
+    "appPrivacy": {
+      "dataCollected": false,
+      "dataTypes": [],
+      "privacyChoices": "DATA_NOT_COLLECTED",
+      "notes": "The app collects no data. No analytics, no crash reporting, no network calls to external servers. All query generation is performed on-device."
+    },
+
     "exportCompliance": {
       "usesEncryption": false,
-      "isExempt": true
+      "encryptionUpdated": false,
+      "exemptFromERN": true,
+      "notes": "App does not implement any encryption. Uses only standard HTTPS provided by iOS."
     },
+
     "appReviewContact": {
       "firstName": "Bobby",
       "lastName": "Vongchanh",
@@ -47,31 +81,152 @@
       "phone": "+1-832-874-7234",
       "demoAccountRequired": false
     },
+
+    "localizations": {
+      "en-US": {
+        "name": "Splunk Query Studio",
+        "subtitle": "SPL Query Builder for Splunk",
+        "promotionalText": "Generate production-ready Splunk SPL queries for 20+ data sources in seconds. Built for SOC analysts, threat hunters, and IT operations teams.",
+        "description": "(same as top-level description field above)",
+        "keywords": "splunk,SPL,SIEM,SOC,query,security,analyst,log,network,threat,hunt,cisco,palo alto,search",
+        "whatsNew": "(same as top-level whatsNew field above)"
+      }
+    },
+
     "screenshots": {
-      "iphone_6_9_1320x2868": [
-        "screenshots/01_wizard_home.png",
-        "screenshots/02_network_sources.png",
-        "screenshots/03_query_output.png",
-        "screenshots/04_history_presets.png"
+      "iphone_6_7_1284x2778": [
+        "screenshots_iphone/AI.png",
+        "screenshots_iphone/Menu selection.png",
+        "screenshots_iphone/Parameters.png",
+        "screenshots_iphone/Query library.png",
+        "screenshots_iphone/About.png",
+        "screenshots_iphone/FAQ.png"
       ],
-      "ipad_13_2064x2752": [
-        "screenshots_ipad/01_wizard_home.png",
-        "screenshots_ipad/02_network_sources.png",
-        "screenshots_ipad/03_query_output.png",
-        "screenshots_ipad/04_history_presets.png"
+      "ipad_12_9_2732x2048": [
+        "screenshots_ipad_12_9/Network selections.png",
+        "screenshots_ipad_12_9/Network query.png",
+        "screenshots_ipad_12_9/Query Library.png",
+        "screenshots_ipad_12_9/Server query.png",
+        "screenshots_ipad_12_9/About.png",
+        "screenshots_ipad_12_9/FAQ.png"
+      ],
+      "ipad_11_2388x1668": [
+        "screenshots_ipad_11/Network selections.png",
+        "screenshots_ipad_11/Network query.png",
+        "screenshots_ipad_11/Query Library.png",
+        "screenshots_ipad_11/Server query.png",
+        "screenshots_ipad_11/About.png",
+        "screenshots_ipad_11/FAQ.png"
       ]
     }
   },
+
   "macOS": {
-    "bundleId": "com.souriapps.splunk-query-studio",
+    "bundleId": "com.souriapps.splunkquerystudio",
     "appName": "Splunk Query Studio",
-    "distributionMethod": "Developer ID (Direct / Notarized DMG)",
-    "note": "Splunk Query Studio is built with Electron. Distribution is via signed + notarized DMG (Gatekeeper-compliant). Mac App Store is not targeted at this time.",
-    "minimumOSVersion": "12.0",
-    "architectures": ["arm64", "x64"],
+    "subtitle": "SPL Query Builder for Splunk",
+    "primaryLocale": "en-US",
+    "distributionMethod": "Mac App Store (Mac Catalyst via Xcode)",
     "version": "1.0.0",
     "buildNumber": "1",
+    "releaseType": "manual",
+    "phasedRelease": false,
+
+    "minimumOSVersion": "13.0",
+    "architectures": ["arm64", "x86_64"],
     "category": "public.app-category.developer-tools",
-    "darkModeSupport": true
+    "categoryASC": "DEVELOPER_TOOLS",
+    "secondaryCategory": "public.app-category.utilities",
+    "secondaryCategoryASC": "UTILITIES",
+    "darkModeSupport": true,
+
+    "description": "Splunk Query Studio is the SPL query builder for Splunk professionals who need to work fast. Whether you're in the middle of an incident response, running threat hunts, or just tired of rewriting the same queries from scratch — Studio puts every search pattern one click away.\n\nBUILD QUERIES INSTANTLY\nChoose a data source, select a query type, fill in your parameters, and get a complete, production-ready SPL query — syntax-highlighted and ready to paste into Splunk.\n\n20+ DATA SOURCE PROFILES\n• Network: Cisco IOS/NX-OS, Cisco ISE, Cisco Firepower/FTD, Palo Alto Networks, SolarWinds, Generic Firewall\n• Server: Linux Syslog, Windows WEC, Windows Sysmon, CrowdStrike\n• Data Center: VMware ESXi, VMware vCenter, NetApp, Pure Storage\n• Applications: Apache HTTP, Microsoft IIS, Nginx, Okta, Microsoft 365\n\nQUERY LIBRARY\n40 pre-built, production-tested SPL templates covering the most common SOC and IT operations use cases. Browse, filter, and copy in one click.\n\nQUERY HISTORY & PRESETS\nNever rewrite the same query twice. Studio keeps your last 75 searches and lets you save unlimited named presets for one-click recall.\n\nAI-ASSISTED QUERY SUGGESTIONS\nOptional on-device AI via Ollama surfaces context-aware SPL improvements and command explanations without sending any data off your Mac.\n\nDESIGNED FOR POWER USERS\nA distraction-free dark interface with syntax highlighting, keyboard shortcuts, and a clean 4-step wizard built for speed during incidents.\n\nPRIVACY FIRST\nSplunk Query Studio works entirely on-device. No telemetry, no accounts, no external network calls. Your queries never leave your Mac.",
+
+    "promotionalText": "Generate production-ready Splunk SPL queries for 20+ data sources in seconds. Native Mac experience for SOC analysts and IT teams.",
+
+    "keywords": "splunk,SPL,SIEM,SOC,query,security,analyst,log,network,threat,hunt,cisco,palo alto,search",
+
+    "whatsNew": "Version 1.0.0 — Initial Release\n\n• 4-step guided SPL query wizard\n• 20+ data source profiles: Network, Server, Data Center, Applications\n• 40-entry query library with one-click copy\n• Query history (75 entries) and unlimited saved presets\n• Syntax-highlighted SPL output\n• Optional on-device AI via Ollama for query suggestions\n• Native Mac dark interface with keyboard navigation",
+
+    "supportURL": "https://souriapps.net/support",
+    "marketingURL": "https://souriapps.net",
+    "privacyPolicyURL": "https://souriapps.net/privacy",
+
+    "appReviewNotes": "Splunk Query Studio is a standalone, offline SPL query builder. It does NOT connect to any Splunk instance — queries are generated locally from user-selected parameters.\n\nNo Splunk login, API key, or backend is required to test the app.\n\nTo test core functionality:\n1. Open the app — the 4-step wizard loads immediately\n2. Step 1: Select a domain (e.g. Network Operations)\n3. Step 2: Choose a data source (e.g. Palo Alto Networks)\n4. Step 3: Select a query type and fill optional field filters\n5. Step 4: The complete, syntax-highlighted SPL query appears — click Copy SPL\n\nQuery Library: click the Library button (top right) to browse 40 pre-built templates.\nPresets: build a query, click Save Preset, name it — it appears in the presets list.\n\nAI feature: only activates if the reviewer has Ollama running locally (ollama.ai). It is not required — the app works fully without it.",
+
+    "reviewCredentials": {
+      "required": false,
+      "notes": "No login required. The app opens directly to the query wizard."
+    },
+
+    "contentRating": "4+",
+    "price": "Free",
+    "pricingTier": "0",
+    "inAppPurchases": [],
+
+    "ageRating": {
+      "alcoholTobaccoDrugs": "NONE",
+      "contests": "NONE",
+      "gambling": "NONE",
+      "horror": "NONE",
+      "matureContent": "NONE",
+      "medicalInfo": "NONE",
+      "profanity": "NONE",
+      "sexualContent": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "violence": "NONE",
+      "violenceRealistic": "NONE",
+      "unrestrictedWebAccess": false,
+      "gamblingSimulated": "NONE"
+    },
+
+    "appPrivacy": {
+      "dataCollected": false,
+      "dataTypes": [],
+      "privacyChoices": "DATA_NOT_COLLECTED",
+      "notes": "The app collects no data. No analytics, no crash reporting, no external network calls. Ollama AI runs entirely on localhost. All query generation is on-device."
+    },
+
+    "exportCompliance": {
+      "usesEncryption": false,
+      "encryptionUpdated": false,
+      "exemptFromERN": true,
+      "notes": "App does not implement any encryption. Uses only standard HTTPS provided by macOS."
+    },
+
+    "appReviewContact": {
+      "firstName": "Bobby",
+      "lastName": "Vongchanh",
+      "email": "iambobbyv@icloud.com",
+      "phone": "+1-832-874-7234",
+      "demoAccountRequired": false
+    },
+
+    "entitlements": {
+      "com.apple.security.app-sandbox": true,
+      "com.apple.security.network.client": true
+    },
+
+    "localizations": {
+      "en-US": {
+        "name": "Splunk Query Studio",
+        "subtitle": "SPL Query Builder for Splunk",
+        "promotionalText": "Generate production-ready Splunk SPL queries for 20+ data sources in seconds. Native Mac experience for SOC analysts and IT teams.",
+        "description": "(same as top-level description field above)",
+        "keywords": "splunk,SPL,SIEM,SOC,query,security,analyst,log,network,threat,hunt,cisco,palo alto,search",
+        "whatsNew": "(same as top-level whatsNew field above)"
+      }
+    },
+
+    "screenshots": {
+      "mac_2560x1600": [
+        "screenshots_mac/Network selections.png",
+        "screenshots_mac/Network query.png",
+        "screenshots_mac/Query Library.png",
+        "screenshots_mac/Server query.png",
+        "screenshots_mac/About.png",
+        "screenshots_mac/FAQ.png"
+      ]
+    }
   }
 }
