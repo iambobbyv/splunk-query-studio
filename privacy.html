@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Splunk Query Studio</title>
+<meta name="description" content="Privacy Policy for Splunk Query Studio by Souri Apps. We collect no data.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:           #020617;
+    --surface:      #0d1526;
+    --surface-2:    #111c35;
+    --border:       rgba(59,130,246,0.15);
+    --text:         #e2e8f0;
+    --text-muted:   #94a3b8;
+    --text-subtle:  #64748b;
+    --accent-blue:  #3b82f6;
+    --accent-cyan:  #06b6d4;
+    --accent-em:    #10b981;
+    --radius:       12px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── Header ────────────────────────────────────────────── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+  }
+  .header-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 60px;
+  }
+  .logo-chip {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #0891b2 50%, #059669 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800;
+    color: #fff; letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+  .header-name {
+    font-size: 14px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-em));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-sep { flex: 1; }
+  .header-back {
+    font-size: 12px;
+    color: var(--text-subtle);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 6px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .header-back:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
+
+  /* ── Hero ──────────────────────────────────────────────── */
+  .hero {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 24px 40px;
+    text-align: center;
+  }
+  .hero-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #1e3a8a 0%, #0891b2 50%, #059669 100%);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 32px rgba(59,130,246,0.25);
+  }
+  .hero-icon svg { width: 24px; height: 24px; color: #fff; }
+  .hero h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-meta {
+    font-size: 13px;
+    color: var(--text-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .hero-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-subtle); }
+
+  /* ── TL;DR badge ───────────────────────────────────────── */
+  .tldr {
+    max-width: 760px;
+    margin: 32px auto 0;
+    padding: 0 24px;
+  }
+  .tldr-card {
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.25);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .tldr-icon {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: rgba(16,185,129,0.15);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent-em);
+  }
+  .tldr-icon svg { width: 16px; height: 16px; }
+  .tldr-title { font-size: 13px; font-weight: 700; color: var(--accent-em); margin-bottom: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .tldr-text { font-size: 14px; color: #a7f3d0; line-height: 1.6; }
+
+  /* ── Main content ──────────────────────────────────────── */
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  .section {
+    margin-bottom: 36px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    width: 24px; height: 24px; flex-shrink: 0;
+    border-radius: 6px;
+    background: rgba(59,130,246,0.15);
+    border: 1px solid rgba(59,130,246,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    color: var(--accent-blue);
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .section p { color: var(--text-muted); margin-bottom: 12px; font-size: 14.5px; }
+  .section p:last-child { margin-bottom: 0; }
+  .section strong { color: var(--text); font-weight: 600; }
+
+  /* pill list */
+  .pill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 100px;
+    font-size: 12.5px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+  .pill-green  { background: rgba(16,185,129,0.1);  border-color: rgba(16,185,129,0.3);  color: #6ee7b7; }
+  .pill-blue   { background: rgba(59,130,246,0.1);  border-color: rgba(59,130,246,0.3);  color: #93c5fd; }
+  .pill-amber  { background: rgba(245,158,11,0.1);  border-color: rgba(245,158,11,0.3);  color: #fcd34d; }
+  .pill svg    { width: 12px; height: 12px; flex-shrink: 0; }
+
+  /* info box */
+  .info-box {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin: 14px 0;
+  }
+  .info-box p { margin: 0; font-size: 14px; }
+
+  /* table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 16px 0;
+  }
+  .data-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 10px 12px;
+    color: var(--text-muted);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: top;
+  }
+  .data-table td:first-child { color: var(--text); font-weight: 500; width: 38%; }
+  .badge-no {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 700;
+    background: rgba(16,185,129,0.12);
+    border: 1px solid rgba(16,185,129,0.3);
+    color: var(--accent-em);
+  }
+
+  /* contact card */
+  .contact-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .contact-icon {
+    width: 40px; height: 40px; flex-shrink: 0;
+    background: rgba(59,130,246,0.12);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent-blue);
+  }
+  .contact-icon svg { width: 18px; height: 18px; }
+  .contact-body { font-size: 14px; }
+  .contact-body strong { display: block; color: var(--text); margin-bottom: 4px; }
+  .contact-body a { color: var(--accent-blue); text-decoration: none; }
+  .contact-body a:hover { text-decoration: underline; }
+
+  /* ── Footer ────────────────────────────────────────────── */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+  }
+  .footer-inner { max-width: 760px; margin: 0 auto; }
+  .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; }
+  .footer-links a { font-size: 13px; color: var(--text-subtle); text-decoration: none; }
+  .footer-links a:hover { color: var(--accent-blue); }
+  .footer-copy { font-size: 12px; color: var(--text-subtle); }
+
+  /* ── Responsive ────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 22px; }
+    .hero { padding: 32px 16px 28px; }
+    main { padding: 28px 16px 60px; }
+    .tldr { padding: 0 16px; }
+    .header-inner { padding: 0; }
+    header { padding: 0 16px; }
+    .data-table td:first-child { width: 44%; }
+    .footer-links { flex-wrap: wrap; gap: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-chip">SQS</div>
+    <span class="header-name">Splunk Query Studio</span>
+    <span class="header-sep"></span>
+    <a class="header-back" href="https://sqs.souriapps.net">← Back</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3L4 7v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V7z"/>
+    </svg>
+  </div>
+  <h1>Privacy Policy</h1>
+  <div class="hero-meta">
+    <span>Splunk Query Studio</span>
+    <span class="dot"></span>
+    <span>Souri Apps</span>
+    <span class="dot"></span>
+    <span>Last updated: February 2026</span>
+  </div>
+</div>
+
+<div class="tldr">
+  <div class="tldr-card">
+    <div class="tldr-icon">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5l3.5-.5z"/></svg>
+    </div>
+    <div>
+      <div class="tldr-title">TL;DR — The short version</div>
+      <div class="tldr-text">Splunk Query Studio <strong>collects zero data</strong>. No accounts. No analytics. No crash reporting. No network calls to external servers. Everything stays on your device.</div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- 1. Overview -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div class="section-title">Overview</div>
+    </div>
+    <p>This Privacy Policy describes how <strong>Souri Apps</strong> ("we", "us", "our") handles information in connection with <strong>Splunk Query Studio</strong> ("the App"), available on iOS, iPadOS, and macOS.</p>
+    <p>Splunk Query Studio is a fully offline SPL query builder. The App is designed to function entirely on your device and requires no account, login, or internet connection to operate.</p>
+  </div>
+
+  <!-- 2. Data we do NOT collect -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div class="section-title">Data We Do Not Collect</div>
+    </div>
+    <p>We do not collect, transmit, or have access to any of the following:</p>
+    <div class="pill-list">
+      <span class="pill pill-green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 5"/></svg> Personal identifiers</span>
+      <span class="pill pill-green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 5"/></svg> Usage analytics</span>
+      <span class="pill pill-green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 5"/></svg> Crash reports</span>
+      <span class="pill pill-green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 5"/></svg> Device identifiers</span>
+      <span class="pill pill-green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 5"/></svg> Location data</span>
+      <span class="pill pill-green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 5"/></svg> IP addresses</span>
+      <span class="pill pill-green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 5"/></svg> SPL queries you build</span>
+      <span class="pill pill-green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 5"/></svg> Saved presets</span>
+      <span class="pill pill-green"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 5"/></svg> Telemetry of any kind</span>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data Type</th>
+          <th>Collected</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Contact Info</td><td><span class="badge-no">Not collected</span></td><td>No account or email required</td></tr>
+        <tr><td>Usage Data</td><td><span class="badge-no">Not collected</span></td><td>No analytics or telemetry SDK</td></tr>
+        <tr><td>Diagnostics</td><td><span class="badge-no">Not collected</span></td><td>No crash reporting service</td></tr>
+        <tr><td>Location</td><td><span class="badge-no">Not collected</span></td><td>Location permission never requested</td></tr>
+        <tr><td>Identifiers</td><td><span class="badge-no">Not collected</span></td><td>No device or advertising ID used</td></tr>
+        <tr><td>User Content</td><td><span class="badge-no">Not collected</span></td><td>Queries and presets stay on-device</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. Local storage -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div class="section-title">Local Storage (On-Device Only)</div>
+    </div>
+    <p>The App stores the following data <strong>locally on your device</strong> to provide its core functionality. This data never leaves your device and is not accessible to Souri Apps:</p>
+    <div class="info-box">
+      <p><strong>Query History</strong> — your last 75 generated SPL queries, stored in device-local browser storage.</p>
+    </div>
+    <div class="info-box">
+      <p><strong>Saved Presets</strong> — named query presets you create, stored in device-local browser storage.</p>
+    </div>
+    <p>You can clear this data at any time by deleting the App from your device.</p>
+  </div>
+
+  <!-- 4. Network activity -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div class="section-title">Network Activity</div>
+    </div>
+    <p>Splunk Query Studio makes <strong>no outbound network requests</strong> to any external server during normal use. All query generation is performed on-device using built-in logic and data.</p>
+
+    <div class="pill-list">
+      <span class="pill pill-amber">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.5"/></svg>
+        Optional: Ollama AI (localhost only)
+      </span>
+    </div>
+
+    <p>On macOS, the App can optionally connect to <strong>Ollama</strong>, a local AI runtime, if you have installed it separately. This connection is to <code>localhost:11434</code> only — your own machine. No data is sent to Souri Apps or any external service. If Ollama is not installed, this feature is silently disabled.</p>
+    <p>When you tap an external link (such as the Souri Apps website), your default browser opens that URL. No personal data is transmitted as part of opening that link.</p>
+  </div>
+
+  <!-- 5. Third-party SDKs -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div class="section-title">Third-Party SDKs &amp; Services</div>
+    </div>
+    <p>Splunk Query Studio contains <strong>no third-party analytics, advertising, or tracking SDKs</strong>.</p>
+    <p>The App is built with <strong>Capacitor</strong> (an open-source iOS/macOS bridge by Ionic). Capacitor itself collects no data. No other third-party services are integrated.</p>
+  </div>
+
+  <!-- 6. Children -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <div class="section-title">Children's Privacy</div>
+    </div>
+    <p>Splunk Query Studio is a professional developer tool intended for adults. It is not directed at children under 13. Since we collect no data from any user, no special handling for children's data is required or applicable.</p>
+  </div>
+
+  <!-- 7. Changes -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <div class="section-title">Changes to This Policy</div>
+    </div>
+    <p>If we ever change this policy, we will update the "Last updated" date at the top of this page. Any future version of the App that introduces data collection will present a new policy for your review before collection begins.</p>
+    <p>Given that the App currently collects no data, we do not anticipate material changes to this policy.</p>
+  </div>
+
+  <!-- 8. Contact -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <div class="section-title">Contact</div>
+    </div>
+    <p>Questions or concerns about this privacy policy? Reach us at:</p>
+    <div class="contact-card">
+      <div class="contact-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2"/>
+          <path d="M2 8l10 6 10-6"/>
+        </svg>
+      </div>
+      <div class="contact-body">
+        <strong>Souri Apps — Privacy</strong>
+        <a href="mailto:support@souriapps.net">support@souriapps.net</a>
+        <br><a href="https://souriapps.net" style="font-size:13px; color: var(--text-subtle);">souriapps.net</a>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-links">
+      <a href="https://sqs.souriapps.net">Splunk Query Studio</a>
+      <a href="https://sqs.souriapps.net/terms">Terms of Service</a>
+      <a href="https://souriapps.net">Souri Apps</a>
+      <a href="mailto:support@souriapps.net">Support</a>
+    </div>
+    <div class="footer-copy">© 2026 Souri Apps. All rights reserved.</div>
+  </div>
+</footer>
+
+</body>
+</html>
