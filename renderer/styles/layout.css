@@ -463,6 +463,9 @@ main {
       / minmax(0, 1fr);
   }
   .sidebar { display: none; }
+  /* Hide centred title at ≤900px — not enough space at iPad portrait widths
+     (iPad Pro 11" portrait = 834px) before it overlaps header-actions */
+  .header-title { display: none; }
   /* Keep fluid padding — content still centered, slightly more breathing room */
   main { padding: var(--space-2) clamp(var(--space-4), 4vw, var(--space-7)); padding-bottom: var(--space-4); }
 }
