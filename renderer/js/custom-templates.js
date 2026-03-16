@@ -4,6 +4,35 @@
 
 const STORAGE_KEY = 'sqs_custom_templates_v1';
 
+// In Electron, window.api.storeGet/storeSet is available via preload.js.
+// We write-through to a JSON file in userData so templates survive across
+// Electron updates, OS updates, or localStorage clears.
+const isElectron = () => typeof window !== 'undefined' && !!window.api?.storeGet;
+
+async function persistToFile(all) {
+  if (isElectron()) {
+    try { await window.api.storeSet(STORAGE_KEY, all); } catch (_) {}
+  }
+}
+
+async function loadFromFile() {
+  if (!isElectron()) return null;
+  try {
+    const data = await window.api.storeGet(STORAGE_KEY);
+    return Array.isArray(data) ? data : null;
+  } catch { return null; }
+}
+
+/** Call once on startup to hydrate localStorage from the file-backed store. */
+export async function hydrateFromStore() {
+  const fileData = await loadFromFile();
+  if (fileData === null) return; // not in Electron or no data yet
+  // Only restore if localStorage is empty (first run or after a clear)
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(fileData));
+  }
+}
+
 /* ---- ID generation ---- */
 function genId() {
   return 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
@@ -23,7 +52,7 @@ export function getCustomTemplates() {
  * Upsert a template. If template.id is absent or not found, inserts as new.
  * Returns the full updated array.
  */
-export function saveCustomTemplate(template) {
+export async function saveCustomTemplate(template) {
   const all  = getCustomTemplates();
   const now  = Date.now();
   const idx  = template.id ? all.findIndex(t => t.id === template.id) : -1;
@@ -41,17 +70,20 @@ export function saveCustomTemplate(template) {
     });
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  await persistToFile(all);
   return all;
 }
 
-export function deleteCustomTemplate(id) {
+export async function deleteCustomTemplate(id) {
   const all = getCustomTemplates().filter(t => t.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  await persistToFile(all);
   return all;
 }
 
-export function clearCustomTemplates() {
+export async function clearCustomTemplates() {
   localStorage.removeItem(STORAGE_KEY);
+  await persistToFile([]);
 }
 
 /* ---- Normalization ---- */

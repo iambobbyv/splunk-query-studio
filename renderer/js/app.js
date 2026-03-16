@@ -12,7 +12,7 @@ import {
   analyzeQuery, getAutoSuggestions, searchKnowledge, resetOllamaCheck
 } from './ai-assistant.js';
 import { loadLibrary, searchLibrary, getQuery as getLibQuery } from './library.js';
-import { getCustomTemplates, saveCustomTemplate, deleteCustomTemplate, parseImport } from './custom-templates.js';
+import { getCustomTemplates, saveCustomTemplate, deleteCustomTemplate, parseImport, hydrateFromStore } from './custom-templates.js';
 
 /* ============================================================
    STATE
@@ -1336,8 +1336,7 @@ function renderQL(templates, sector, query, _refreshFn) {
     card.querySelector('.ql-btn-delete')?.addEventListener('click', e => {
       e.stopPropagation();
       if (!confirm('Delete this custom template? This cannot be undone.')) return;
-      deleteCustomTemplate(id);
-      if (_refreshFn) _refreshFn();
+      deleteCustomTemplate(id).then(() => { if (_refreshFn) _refreshFn(); });
       showToast('Template deleted', 'info');
     });
   });
@@ -1373,10 +1372,8 @@ function showQLEditor(template = null, onSave = null) {
     if (!title) { showToast('Title is required', 'warn'); qs('#qle-title').focus(); return; }
     if (!spl)   { showToast('SPL query is required', 'warn'); qs('#qle-spl').focus(); return; }
     const tags = qs('#qle-tags').value.split(',').map(t => t.trim()).filter(Boolean);
-    saveCustomTemplate({ ...(template ?? {}), title, description: qs('#qle-desc').value.trim(), spl, tags });
-    hideQLEditor();
-    if (onSave) onSave();
-    showToast(template ? 'Template updated' : 'Template saved', 'success');
+    saveCustomTemplate({ ...(template ?? {}), title, description: qs('#qle-desc').value.trim(), spl, tags })
+      .then(() => { hideQLEditor(); if (onSave) onSave(); showToast(template ? 'Template updated' : 'Template saved', 'success'); });
   });
 }
 
@@ -1444,32 +1441,49 @@ async function initQueryLibrary() {
   }, 180);
   qs('#ql-search')?.addEventListener('input', onSearch);
 
-  // Import file button → trigger hidden file input
-  qs('#btn-ql-import')?.addEventListener('click', () => qs('#ql-file-input')?.click());
+  // Shared handler: process text + filename after any import method resolves
+  async function handleImportText(text, filename) {
+    const parsed = parseImport(text, filename);
+    if (!parsed.length) {
+      showToast('No valid templates found in this file', 'warn');
+      return;
+    }
+    for (const t of parsed) await saveCustomTemplate(t);
+    qsa('.ql-tab', qs('#ql-tabs')).forEach(t => t.classList.remove('active'));
+    qs('.ql-tab[data-sector="custom"]')?.classList.add('active');
+    qs('#btn-ql-new')?.classList.remove('hidden');
+    qs('#ql-notice')?.classList.add('hidden');
+    refreshQL();
+    showToast(`Imported ${parsed.length} template${parsed.length > 1 ? 's' : ''}`, 'success');
+  }
 
-  // File input change handler
+  // Import button — use Electron native dialog when available, else HTML file input
+  qs('#btn-ql-import')?.addEventListener('click', async () => {
+    if (window.api?.openFile) {
+      // Electron: native dialog (reliable on macOS — avoids hidden-input change-event bug)
+      try {
+        const result = await window.api.openFile();
+        if (!result) return; // user cancelled
+        await handleImportText(result.content, result.filename);
+      } catch (err) {
+        showToast('Could not open file: ' + err.message, 'error');
+      }
+    } else {
+      // iOS / web fallback: HTML file input
+      qs('#ql-file-input')?.click();
+    }
+  });
+
+  // Fallback file input (iOS / web only)
   qs('#ql-file-input')?.addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      const text   = await file.text();
-      const parsed = parseImport(text, file.name);
-      if (!parsed.length) {
-        showToast('No valid templates found in this file', 'warn');
-      } else {
-        parsed.forEach(t => saveCustomTemplate(t));
-        // Switch to Custom tab to show imported templates
-        qsa('.ql-tab', qs('#ql-tabs')).forEach(t => t.classList.remove('active'));
-        qs('.ql-tab[data-sector="custom"]')?.classList.add('active');
-        qs('#btn-ql-new')?.classList.remove('hidden');
-        qs('#ql-notice')?.classList.add('hidden');
-        refreshQL();
-        showToast(`Imported ${parsed.length} template${parsed.length > 1 ? 's' : ''}`, 'success');
-      }
+      await handleImportText(await file.text(), file.name);
     } catch (err) {
       showToast('Could not read file: ' + err.message, 'error');
     }
-    e.target.value = ''; // reset so same file can be re-imported
+    e.target.value = '';
   });
 
   // "New Template" button
@@ -1529,7 +1543,8 @@ function init() {
     initFAQ();
 
     /* ---- Query Library ---- */
-    initQueryLibrary();
+    // Hydrate localStorage from file-backed store before rendering (Electron only)
+    hydrateFromStore().then(() => initQueryLibrary());
 
     /* ---- Mobile navigation ---- */
     initMobileNav();

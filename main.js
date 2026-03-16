@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain, clipboard, shell, screen, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, clipboard, shell, screen, Menu, dialog } = require('electron');
 const path = require('path');
+const fs   = require('fs');
 
 const SPLASH_DURATION = 2_500;  // 2.5 seconds
 const DEV = !app.isPackaged;    // true when running via `npm start`
@@ -149,6 +150,37 @@ function buildMenu() {
 /* ── IPC handlers ───────────────────────────────────────────────────────── */
 ipcMain.handle('clipboard:write', (_, text) => clipboard.writeText(text));
 ipcMain.handle('shell:open',      (_, url)  => shell.openExternal(url));
+
+// File import — returns { filename, content } or null if cancelled
+ipcMain.handle('dialog:openFile', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: 'Import Templates',
+    filters: [
+      { name: 'Template Files', extensions: ['json', 'txt', 'xml', 'spl', 'log'] },
+      { name: 'All Files',      extensions: ['*'] },
+    ],
+    properties: ['openFile'],
+  });
+  if (canceled || !filePaths.length) return null;
+  const filePath = filePaths[0];
+  const content  = fs.readFileSync(filePath, 'utf8');
+  return { filename: path.basename(filePath), content };
+});
+
+// File-backed key-value store in userData — survives Electron / OS updates
+const STORE_PATH = path.join(app.getPath('userData'), 'sqs-store.json');
+
+function readStore() {
+  try { return JSON.parse(fs.readFileSync(STORE_PATH, 'utf8')); }
+  catch { return {}; }
+}
+function writeStore(data) {
+  try { fs.writeFileSync(STORE_PATH, JSON.stringify(data), 'utf8'); }
+  catch (e) { console.error('[store] write failed:', e.message); }
+}
+
+ipcMain.handle('store:get', (_, key)        => readStore()[key] ?? null);
+ipcMain.handle('store:set', (_, key, value) => { const s = readStore(); s[key] = value; writeStore(s); });
 
 /* ── App lifecycle ──────────────────────────────────────────────────────── */
 app.whenReady().then(() => {
