@@ -913,12 +913,15 @@ function renderAISuggestions(suggestions) {
 
     // Click-to-copy on SPL snippets inside cards
     card.querySelectorAll('.ai-suggestion-spl').forEach(el => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', async () => {
         const text = el.textContent;
-        if (window.api?.copyToClipboard) {
-          window.api.copyToClipboard(text).then(() => showToast('SPL copied!'));
-        } else {
-          navigator.clipboard.writeText(text).then(() => showToast('SPL copied!'));
+        try {
+          if (window.api?.copyToClipboard) await window.api.copyToClipboard(text);
+          else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+          else throw new Error('clipboard unavailable');
+          showToast('SPL copied!');
+        } catch {
+          showToast('Copy failed', 'error');
         }
       });
     });
@@ -967,11 +970,14 @@ function appendChatMessage(role, text) {
 
   // Click-to-copy on SPL pre blocks
   msg.querySelectorAll('pre').forEach(pre => {
-    pre.addEventListener('click', () => {
-      if (window.api?.copyToClipboard) {
-        window.api.copyToClipboard(pre.textContent).then(() => showToast('SPL copied!'));
-      } else {
-        navigator.clipboard.writeText(pre.textContent).then(() => showToast('SPL copied!'));
+    pre.addEventListener('click', async () => {
+      try {
+        if (window.api?.copyToClipboard) await window.api.copyToClipboard(pre.textContent);
+        else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(pre.textContent);
+        else throw new Error('clipboard unavailable');
+        showToast('SPL copied!');
+      } catch {
+        showToast('Copy failed', 'error');
       }
     });
   });
@@ -1098,13 +1104,16 @@ function initAIPanel() {
   });
 
   // Click-to-copy on pre blocks (delegated)
-  qs('#ai-chat-messages')?.addEventListener('click', e => {
+  qs('#ai-chat-messages')?.addEventListener('click', async e => {
     const pre = e.target.closest('pre');
     if (!pre) return;
-    if (window.api?.copyToClipboard) {
-      window.api.copyToClipboard(pre.textContent).then(() => showToast('SPL copied!'));
-    } else {
-      navigator.clipboard.writeText(pre.textContent).then(() => showToast('SPL copied!'));
+    try {
+      if (window.api?.copyToClipboard) await window.api.copyToClipboard(pre.textContent);
+      else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(pre.textContent);
+      else throw new Error('clipboard unavailable');
+      showToast('SPL copied!');
+    } catch {
+      showToast('Copy failed', 'error');
     }
   });
 }
@@ -1464,6 +1473,15 @@ async function initQueryLibrary() {
       try {
         const result = await window.api.openFile();
         if (!result) return; // user cancelled
+        // Surface main-process import errors instead of failing silently
+        if (result.error === 'FILE_TOO_LARGE') {
+          showToast('File is too large — 10 MB max', 'error');
+          return;
+        }
+        if (result.error === 'READ_FAILED' || typeof result.content !== 'string') {
+          showToast('Could not read file', 'error');
+          return;
+        }
         await handleImportText(result.content, result.filename);
       } catch (err) {
         showToast('Could not open file: ' + err.message, 'error');
