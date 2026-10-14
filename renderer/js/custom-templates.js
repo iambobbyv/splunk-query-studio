@@ -86,6 +86,43 @@ export async function clearCustomTemplates() {
   await persistToFile([]);
 }
 
+/* ---- Dedupe ---- */
+
+// djb2 hash over normalized title + SPL. normalizeTemplate mints fresh
+// ids for every import, so duplicates are detected by content, not id.
+export function templateContentHash(t) {
+  const s = `${(t.title || '').trim().toLowerCase()}\n${(t.spl || '').trim()}`;
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (((h << 5) + h + s.charCodeAt(i)) >>> 0);
+  return h.toString(36);
+}
+
+/**
+ * Merge parsed import entries into the stored set, skipping duplicates.
+ * An entry is skipped when its id already exists OR its title+SPL
+ * content hash matches an existing template (also dedupes within the batch).
+ * Persists the merged set and returns { added, skipped }.
+ */
+export async function mergeImportedTemplates(parsed) {
+  const all        = getCustomTemplates();
+  const seenIds    = new Set(all.map(t => t.id));
+  const seenHashes = new Set(all.map(templateContentHash));
+  let added = 0, skipped = 0;
+
+  for (const t of parsed) {
+    const hash = templateContentHash(t);
+    if ((t.id && seenIds.has(t.id)) || seenHashes.has(hash)) { skipped++; continue; }
+    if (t.id) seenIds.add(t.id);
+    seenHashes.add(hash);
+    all.push(t);
+    added++;
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  await persistToFile(all);
+  return { added, skipped };
+}
+
 /* ---- Normalization ---- */
 
 function normalizeTemplate(raw, source = 'manual', sourceFile = '') {
@@ -223,4 +260,28 @@ export function parseImport(content, filename = '') {
 
   // Default: treat as plain text / SPL
   return parseText(content, filename);
+}
+
+/* ---- Export ---- */
+
+/**
+ * Serialize templates to the spl-library-compatible JSON shape
+ * { queries: [...] } so exported files re-import cleanly via parseImport.
+ */
+export function serializeTemplatesForExport(templates) {
+  return {
+    queries: (templates || []).map(t => ({
+      id:             t.id ?? null,
+      title:          t.title ?? '',
+      category:       t.category ?? 'custom',
+      subcategory:    t.subcategory ?? '',
+      popularity:     t.popularity ?? null,
+      gem:            !!t.gem,
+      tags:           Array.isArray(t.tags) ? t.tags : [],
+      description:    t.description ?? '',
+      spl:            t.spl ?? '',
+      fields:         Array.isArray(t.fields) ? t.fields : [],
+      exampleResults: Array.isArray(t.exampleResults) ? t.exampleResults : [],
+    })),
+  };
 }
