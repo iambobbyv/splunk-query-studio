@@ -151,7 +151,11 @@ function buildMenu() {
 ipcMain.handle('clipboard:write', (_, text) => clipboard.writeText(text));
 ipcMain.handle('shell:open',      (_, url)  => shell.openExternal(url));
 
-// File import — returns { filename, content } or null if cancelled
+// 10 MB cap — reading a huge log into the main process would hang the app
+const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
+
+// File import — returns { filename, content }, null if cancelled,
+// or { error: 'FILE_TOO_LARGE' | 'READ_FAILED' }
 ipcMain.handle('dialog:openFile', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     title: 'Import Templates',
@@ -163,8 +167,22 @@ ipcMain.handle('dialog:openFile', async () => {
   });
   if (canceled || !filePaths.length) return null;
   const filePath = filePaths[0];
-  const content  = fs.readFileSync(filePath, 'utf8');
-  return { filename: path.basename(filePath), content };
+  try {
+    const { size } = fs.statSync(filePath);
+    if (size > MAX_IMPORT_BYTES) return { error: 'FILE_TOO_LARGE' };
+    const buf = fs.readFileSync(filePath); // throws on read errors
+    let content;
+    try {
+      // fatal:true throws on invalid UTF-8 instead of silently replacing
+      content = new TextDecoder('utf-8', { fatal: true }).decode(buf);
+    } catch {
+      return { error: 'READ_FAILED' };
+    }
+    return { filename: path.basename(filePath), content };
+  } catch (err) {
+    console.error('[import] read failed:', err.message);
+    return { error: 'READ_FAILED' };
+  }
 });
 
 // File-backed key-value store in userData — survives Electron / OS updates
