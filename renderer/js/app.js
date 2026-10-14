@@ -12,7 +12,9 @@ import {
   analyzeQuery, getAutoSuggestions, searchKnowledge, resetOllamaCheck
 } from './ai-assistant.js';
 import { loadLibrary, searchLibrary, getQuery as getLibQuery } from './library.js';
-import { getCustomTemplates, saveCustomTemplate, deleteCustomTemplate, parseImport, hydrateFromStore } from './custom-templates.js';
+import { getCustomTemplates, saveCustomTemplate, deleteCustomTemplate, parseImport, hydrateFromStore, serializeTemplatesForExport, mergeImportedTemplates } from './custom-templates.js';
+// NOTE: stacked on the pro-license PR — merge that PR first, it adds renderer/js/license.js
+import { isPro } from './license.js';
 
 /* ============================================================
    STATE
@@ -1448,14 +1450,91 @@ async function initQueryLibrary() {
       showToast('No valid templates found in this file', 'warn');
       return;
     }
-    for (const t of parsed) await saveCustomTemplate(t);
+    // Dedupe: skip entries whose id exists or whose title+SPL matches
+    const { added, skipped } = await mergeImportedTemplates(parsed);
     qsa('.ql-tab', qs('#ql-tabs')).forEach(t => t.classList.remove('active'));
     qs('.ql-tab[data-sector="custom"]')?.classList.add('active');
     qs('#btn-ql-new')?.classList.remove('hidden');
     qs('#ql-notice')?.classList.add('hidden');
     refreshQL();
-    showToast(`Imported ${parsed.length} template${parsed.length > 1 ? 's' : ''}`, 'success');
+    if (added > 0) {
+      showToast(`Imported ${added} template${added > 1 ? 's' : ''}` +
+        (skipped ? ` (${skipped} duplicate${skipped > 1 ? 's' : ''} skipped)` : ''), 'success');
+    } else {
+      showToast('No new templates — all duplicates skipped', 'info');
+    }
   }
+
+  // Export custom templates — Electron: native save dialog.
+  // iOS: in-modal copy view (WKWebView ignores anchor[download]).
+  // Web: Blob download, falling back to copy-to-clipboard.
+  async function exportCustomTemplates() {
+    if (!isPro()) { openModal('upsell'); return; } // template export is a Pro feature
+    const templates = getCustomTemplates();
+    if (!templates.length) { showToast('No custom templates to export', 'warn'); return; }
+    const json = JSON.stringify(serializeTemplatesForExport(templates), null, 2);
+
+    if (window.api?.saveFile) {
+      // Electron: native save dialog
+      try {
+        const res = await window.api.saveFile({ filename: 'splunk-query-studio-templates.json', content: json });
+        showToast(res?.saved ? 'Templates exported' : 'Export cancelled', res?.saved ? 'success' : 'info');
+      } catch (err) {
+        showToast('Export failed: ' + err.message, 'error');
+      }
+      return;
+    }
+
+    if (window.Capacitor?.getPlatform?.() === 'ios') {
+      // iOS: Blob download silently fails — show the JSON in a modal with a copy button
+      const ta = qs('#export-json-text');
+      if (ta) ta.value = json;
+      openModal('export');
+      return;
+    }
+
+    // Web: Blob download
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    if (typeof a.download === 'string') {
+      a.href = url;
+      a.download = 'splunk-query-studio-templates.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('Templates exported', 'success');
+    } else {
+      // Anchor download unsupported — copy to clipboard instead
+      URL.revokeObjectURL(url);
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(json);
+          showToast('Download not supported here — JSON copied to clipboard', 'info');
+        } else {
+          showToast('Export not supported on this platform', 'error');
+        }
+      } catch {
+        showToast('Export failed', 'error');
+      }
+    }
+  }
+
+  // Export button (Query Library modal header) + iOS copy button
+  qs('#btn-ql-export')?.addEventListener('click', exportCustomTemplates);
+  qs('#btn-copy-export-json')?.addEventListener('click', async () => {
+    const text = qs('#export-json-text')?.value ?? '';
+    if (!text) return;
+    try {
+      if (window.api?.copyToClipboard) await window.api.copyToClipboard(text);
+      else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      else throw new Error('clipboard unavailable');
+      showToast('Copied to clipboard!', 'success');
+    } catch {
+      showToast('Copy failed', 'error');
+    }
+  });
 
   // Import button — use Electron native dialog when available, else HTML file input
   qs('#btn-ql-import')?.addEventListener('click', async () => {
