@@ -167,6 +167,21 @@ ipcMain.handle('dialog:openFile', async () => {
   return { filename: path.basename(filePath), content };
 });
 
+// File export — native save dialog; returns { saved, filePath } ({ saved: false } if cancelled)
+ipcMain.handle('dialog:saveFile', async (_, { filename, content } = {}) => {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: 'Export Templates',
+    defaultPath: filename || 'splunk-query-studio-templates.json',
+    filters: [
+      { name: 'JSON',      extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (canceled || !filePath) return { saved: false };
+  fs.writeFileSync(filePath, content ?? '', 'utf8');
+  return { saved: true, filePath };
+});
+
 // File-backed key-value store in userData — survives Electron / OS updates
 const STORE_PATH = path.join(app.getPath('userData'), 'sqs-store.json');
 
