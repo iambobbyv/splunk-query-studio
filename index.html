@@ -67,6 +67,10 @@
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 2V4a1 1 0 011-1z"/></svg>
             Send Feedback
           </button>
+          <button class="dropdown-item" data-open-modal="license">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="5.5" r="2.5"/><path d="M7.5 7.5L13.5 13.5"/><path d="M11 11l1.8 1.8M12.8 9.2L14.5 11"/></svg>
+            Pro License
+          </button>
           <div class="dropdown-divider"></div>
           <button class="dropdown-item" data-open-modal="privacy">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L3 4v4c0 3 2.5 5 5 6 2.5-1 5-3 5-6V4z"/></svg>
@@ -607,6 +611,72 @@
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M14 2L2 7l5 2m7-7l-5 9-2-5"/></svg>
         Send via Email
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Pro License -->
+<div class="modal-overlay" id="modal-license" aria-hidden="true" role="dialog" aria-labelledby="modal-license-title">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="5.5" r="2.5"/><path d="M7.5 7.5L13.5 13.5"/><path d="M11 11l1.8 1.8M12.8 9.2L14.5 11"/></svg>
+      </div>
+      <div class="modal-head-text">
+        <h2 class="modal-title" id="modal-license-title">Pro License</h2>
+        <p class="modal-subtitle">Offline activation — no internet required</p>
+      </div>
+      <button class="modal-close" data-close-modal="license" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-label">Status</div>
+        <p class="modal-text" id="license-status">Checking…</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">License key</div>
+        <textarea class="feedback-textarea" id="license-key-input" rows="3" placeholder="Paste your license key (starts with SQS1.)…" spellcheck="false" autocomplete="off"></textarea>
+        <p class="modal-text hidden" id="license-error" style="color:var(--metric-danger,#f87171)"></p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary hidden" id="btn-deactivate-license">Deactivate</button>
+      <button class="btn btn-secondary" data-close-modal="license">Close</button>
+      <button class="btn btn-primary" id="btn-activate-license">Activate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pro Upsell -->
+<div class="modal-overlay" id="modal-upsell" aria-hidden="true" role="dialog" aria-labelledby="modal-upsell-title">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-head-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l5.5 3v4c0 3.2-2.6 5.4-5.5 6.5C5.1 14.4 2.5 12.2 2.5 9V5z"/><path d="M8 5.5v5M5.5 8h5"/></svg>
+      </div>
+      <div class="modal-head-text">
+        <h2 class="modal-title" id="modal-upsell-title">Splunk Query Studio Pro</h2>
+        <p class="modal-subtitle">Unlock the power features</p>
+      </div>
+      <button class="modal-close" data-close-modal="upsell" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-label">Pro unlocks</div>
+        <p class="modal-text">✦ <strong>AI Assistant</strong> — SPL Advisor chat, optimization tips, and local-LLM help<br/>✦ <strong>Template import &amp; export</strong> — share custom query packs with your team</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Always free</div>
+        <p class="modal-text">The 4-step query wizard, built-in query library, history, and presets stay free forever.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close-modal="upsell">Maybe Later</button>
+      <button class="btn btn-primary" data-open-modal="license">Enter License Key</button>
     </div>
   </div>
 </div>
