@@ -13,6 +13,7 @@ import {
 } from './ai-assistant.js';
 import { loadLibrary, searchLibrary, getQuery as getLibQuery } from './library.js';
 import { getCustomTemplates, saveCustomTemplate, deleteCustomTemplate, parseImport, hydrateFromStore } from './custom-templates.js';
+import { isPro, activateLicense, deactivateLicense, getLicensePayload } from './license.js';
 
 /* ============================================================
    STATE
@@ -746,6 +747,72 @@ function initModals() {
 }
 
 /* ============================================================
+   PRO LICENSE UI
+   ============================================================ */
+
+const LICENSE_REASONS = {
+  MALFORMED:     'That key doesn\u2019t look right — check for missing characters.',
+  BAD_SIGNATURE: 'Signature verification failed — double-check the key.',
+  EXPIRED:       'This license has expired. Contact Souri Apps to renew.',
+};
+
+function renderLicenseStatus() {
+  const statusEl = qs('#license-status');
+  const deactBtn = qs('#btn-deactivate-license');
+  const errEl    = qs('#license-error');
+  if (!statusEl) return;
+
+  const payload = getLicensePayload();
+  if (payload) {
+    const expDate = new Date(payload.exp * 1000)
+      .toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    const seats = payload.seats ?? 1;
+    statusEl.textContent =
+      `\u2713 Pro active — ${payload.email} · ${seats} seat${seats === 1 ? '' : 's'} · valid until ${expDate}`;
+  } else {
+    statusEl.textContent =
+      'Free tier — the 4-step wizard is fully free. Pro unlocks the AI Assistant and template import/export.';
+  }
+  deactBtn?.classList.toggle('hidden', !payload);
+  if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+}
+
+function initLicenseUI() {
+  const showLicenseError = msg => {
+    const errEl = qs('#license-error');
+    if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+  };
+
+  qs('#btn-activate-license')?.addEventListener('click', () => {
+    const input = qs('#license-key-input');
+    const key = (input?.value ?? '').trim();
+    if (!key) { showLicenseError('Paste your license key first.'); return; }
+    const res = activateLicense(key);
+    if (res.ok) {
+      if (input) input.value = '';
+      renderLicenseStatus();
+      showToast('Pro activated \u2014 enjoy!', 'success');
+    } else {
+      showLicenseError(LICENSE_REASONS[res.reason] ?? 'Activation failed.');
+    }
+  });
+
+  qs('#btn-deactivate-license')?.addEventListener('click', () => {
+    deactivateLicense();
+    renderLicenseStatus();
+    showToast('Pro license deactivated', 'info');
+  });
+
+  // Refresh status every time the modal opens
+  const overlay = qs('#modal-license');
+  if (overlay) {
+    new MutationObserver(() => {
+      if (overlay.classList.contains('open')) renderLicenseStatus();
+    }).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+  }
+}
+
+/* ============================================================
    MOBILE NAVIGATION — Sidebar drawer + History bottom sheet
    ============================================================ */
 
@@ -831,9 +898,11 @@ function initMobileNav() {
 function initAsideTabs() {
   qsa('[data-aside-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
+      const tab = btn.dataset.asideTab;
+      // AI Advisor is a Pro feature — free users get the upsell
+      if (tab === 'ai' && !isPro()) { openModal('upsell'); return; }
       qsa('[data-aside-tab]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const tab = btn.dataset.asideTab;
       qsa('.aside-tab-panel').forEach(p => p.classList.add('hidden'));
       qs(`#aside-panel-${tab}`)?.classList.remove('hidden');
     });
@@ -1227,7 +1296,7 @@ function renderQL(templates, sector, query, _refreshFn) {
         </div>
       </div>`;
     qs('#btn-ql-empty-new')?.addEventListener('click', () => showQLEditor(null, _refreshFn));
-    qs('#btn-ql-empty-import')?.addEventListener('click', () => qs('#ql-file-input')?.click());
+    qs('#btn-ql-empty-import')?.addEventListener('click', () => qs('#btn-ql-import')?.click());
     return;
   }
 
@@ -1457,8 +1526,9 @@ async function initQueryLibrary() {
     showToast(`Imported ${parsed.length} template${parsed.length > 1 ? 's' : ''}`, 'success');
   }
 
-  // Import button — use Electron native dialog when available, else HTML file input
-  qs('#btn-ql-import')?.addEventListener('click', async () => {
+  // Import entry point — Pro-gated, then Electron native dialog or HTML file input
+  async function requestImport() {
+    if (!isPro()) { openModal('upsell'); return; } // template import is a Pro feature
     if (window.api?.openFile) {
       // Electron: native dialog (reliable on macOS — avoids hidden-input change-event bug)
       try {
@@ -1472,7 +1542,10 @@ async function initQueryLibrary() {
       // iOS / web fallback: HTML file input
       qs('#ql-file-input')?.click();
     }
-  });
+  }
+
+  // Import button (header of the Query Library modal)
+  qs('#btn-ql-import')?.addEventListener('click', requestImport);
 
   // Fallback file input (iOS / web only)
   qs('#ql-file-input')?.addEventListener('change', async e => {
@@ -1535,6 +1608,7 @@ function init() {
 
     /* ---- Modals & header menu ---- */
     initModals();
+    initLicenseUI();
 
     /* ---- Theme toggle ---- */
     initTheme();
